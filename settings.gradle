@@ -1,0 +1,18 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            name = 'MinecraftForge'
+            url = 'https://maven.minecraftforge.net/'
+        }
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+}
+
+// 钉住工程名（必须写在 pluginManagement / plugins 之后）：
+// jar 的 Manifest 里 Implementation-Title 取自这里，不写就取「文件夹名」，
+// 改文件夹名会连带改掉产物元数据。
+rootProject.name = 'Wuling-Empire'

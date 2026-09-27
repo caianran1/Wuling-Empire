@@ -30,6 +30,14 @@ export JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
   「改动真进 jar 了没」最快的手段。
 - **改 lang 文件用 Python 读写**（`encoding='utf-8'`、`newline='\n'`），比 Edit 工具抗坏字节。
   体检：`open(p,'rb').read().decode('utf-8')`。
+- **产物命名（0.2.27 起）**：`Wuling-Empire-v<版本>.jar`。
+  `build.gradle`：`version = "v${mod_version}"` + `base { archivesName = 'Wuling-Empire' }`；
+  `settings.gradle` 末尾 `rootProject.name = 'Wuling-Empire'`（**必须在 pluginManagement/plugins 之后**）。
+  mod_id 仍 `wulingdiguo`（存档/注册表/配置目录都靠它），displayName 仍 `WuLing Diguo / 武灵帝国`。
+- ⚠️ **gradle.properties 当「纯 ASCII 文件」对待**：Gradle 按 ISO-8859-1 读它，
+  直接写中文 → jar 内 mods.toml 双重编码乱码（游戏 Mod 列表显示 `æ¦çµå¸å½`）。
+  非 ASCII 值一律 `\uXXXX` 转义；`processResources` 显式 `filteringCharset = 'UTF-8'`。
+  Forge 侧无需处理：nightconfig 默认 UTF-8。**校验只看 jar 内字节**，不看构建日志。
 
 ## 素材生成脚本（tools/，产出物一律自动生成、勿手改）
 - 原版贴图/模型都从 `_env/ghome/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar` 读。

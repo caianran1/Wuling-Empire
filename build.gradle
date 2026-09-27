@@ -5,11 +5,18 @@ plugins {
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
 }
 
-version = mod_version
+// ── 产物命名（0.2.27 起）────────────────────────────────────────────
+// 发布用的 jar 文件名 = Wuling-Empire-v<mod_version>.jar
+//   例：Wuling-Empire-v0.2.27.jar
+// 做法：archivesName 给品牌名，version 加 'v' 前缀 —— 两者都从 base 派生，
+// 所以 jar / reobfJar / sourcesJar 得到的是同一个名字，不会出现两份产物。
+// 注意：这只影响「文件名」，与 mod_id（wulingdiguo）、mods.toml 里的
+// displayName 和 version 字段都无关，游戏内显示依旧是 WuLing Diguo / 武灵帝国 0.2.27。
+version = "v${mod_version}"
 group = mod_group_id
 
 base {
-    archivesName = mod_id
+    archivesName = 'Wuling-Empire'
 }
 
 // Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
@@ -151,6 +158,11 @@ dependencies {
 // When "copyIdeResources" is enabled, this will also run before the game launches in IDE environments.
 // See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
 tasks.named('processResources', ProcessResources).configure {
+    // 显式钉住 UTF-8：mods.toml / pack.mcmeta 被 expand 写回 jar 时用的字符集。
+    // 不写的话用的是「构建机的默认字符集」，在中文 Windows（GBK）上构建会把中文
+    // 写成 GBK 字节，而 Forge 用 NightConfig 以 UTF-8 读取 → Mod 列表显示乱码。
+    filteringCharset = 'UTF-8'
+
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
             forge_version: forge_version, forge_version_range: forge_version_range,
@@ -173,7 +185,8 @@ tasks.named('jar', Jar).configure {
                 'Specification-Vendor'    : mod_authors,
                 'Specification-Version'   : '1', // We are version 1 of ourselves
                 'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
+                // 保持纯语义化版本（不带文件名用的 'v' 前缀），避免解析 Manifest 的工具踩坑
+                'Implementation-Version'  : mod_version,
                 'Implementation-Vendor'   : mod_authors,
                 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
