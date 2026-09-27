@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "wulingdiguo:item/bead/magma_cube"
+  }
+}

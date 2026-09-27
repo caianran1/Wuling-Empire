@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>灵珠灵力回复量验收表</title>
+<style>
+  body{margin:0;padding:28px 32px 48px;background:#f5f6f8;color:#1f2329;
+       font:14px/1.5 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  h1{margin:0 0 6px;font-size:20px;font-weight:600}
+  p.sub{margin:0 0 14px;color:#6b7280;font-size:13px}
+  .legend{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;
+          margin:0 0 20px;font-size:13px;color:#374151;line-height:1.8;max-width:900px}
+  .legend b{color:#111827}
+  code{background:#f3f4f6;border-radius:4px;padding:1px 5px;font-size:12px}
+  table{border-collapse:separate;border-spacing:0;background:#fff;font-size:13px;
+        border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;
+        box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  th,td{padding:7px 12px;text-align:center;border-bottom:1px solid #f1f3f5}
+  thead th{background:#fafbfc;font-weight:600;color:#374151;white-space:nowrap}
+  thead th .mult{font-weight:400;color:#9ca3af;font-size:11px}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:#fcfdfe}
+  td.name{font-weight:600;text-align:left;white-space:nowrap}
+  td.en{color:#9ca3af;font-size:11px;text-align:left}
+  td.base{background:#fafbfc;color:#6b7280;font-weight:600}
+  td.num0{color:#6b7280}
+  td.num1{color:#3f9142}
+  td.num2{color:#2b7bc4}
+  td.num3{color:#8b46d6}
+  td.num4{color:#c98a00;font-weight:600}
+  td .pc{color:#c3c8d0;font-size:10px}
+</style></head><body>
+<h1>灵珠灵力回复量验收表</h1>
+<p class="sub">共 33 只怪物。数值 = 吸收一颗该怪物该品质灵珠可回复的灵力百分比（灵力上限 100）。</p>
+<div class="legend">
+  <b>算法</b>：回复量 = <b>怪物基准</b> × <b>品质倍率</b>。表中「基准」列就是该怪物<u>凡品</u>的回复量。<br>
+  <b>锚点</b>：僵尸凡品 <code>5%</code>、末影龙极品 <code>100%</code>（基准 25 × 倍率 4）。<br>
+  <b>表外来源</b>（其它模组的怪）：按最大生命值兜底 —— 20 血 = 5%，每多 1 点血 +1/9，钳制在 3 ~ 25。<br>
+  <b>改数值</b>：改 <code>tools/gen_bead_textures.py</code> 的 <code>MOB_RESTORE</code> 重跑脚本，本页与 Java 会一起更新。
+</div>
+<table>
+  <thead><tr><th>怪物</th><th>ID</th><th>基准</th><th>凡品<div class="mult">x1</div></th><th>良品<div class="mult">x1.5</div></th><th>优品<div class="mult">x2</div></th><th>上品<div class="mult">x3</div></th><th>极品<div class="mult">x4</div></th></tr></thead>
+  <tbody>
+<tr><td class="name">烈焰人</td><td class="en">blaze</td><td class="base">8</td><td class="num0">8</td><td class="num1">12</td><td class="num2">16</td><td class="num3">24</td><td class="num4">32</td></tr>
+<tr><td class="name">洞穴蜘蛛</td><td class="en">cave_spider</td><td class="base">4.5</td><td class="num0">4.5</td><td class="num1">6.75</td><td class="num2">9</td><td class="num3">13.5</td><td class="num4">18</td></tr>
+<tr><td class="name">苦力怕</td><td class="en">creeper</td><td class="base">6</td><td class="num0">6</td><td class="num1">9</td><td class="num2">12</td><td class="num3">18</td><td class="num4">24</td></tr>
+<tr><td class="name">溺尸</td><td class="en">drowned</td><td class="base">5.5</td><td class="num0">5.5</td><td class="num1">8.25</td><td class="num2">11</td><td class="num3">16.5</td><td class="num4">22</td></tr>
+<tr><td class="name">远古守卫者</td><td class="en">elder_guardian</td><td class="base">15</td><td class="num0">15</td><td class="num1">22.5</td><td class="num2">30</td><td class="num3">45</td><td class="num4">60</td></tr>
+<tr><td class="name">末影龙</td><td class="en">ender_dragon</td><td class="base">25</td><td class="num0">25</td><td class="num1">37.5</td><td class="num2">50</td><td class="num3">75</td><td class="num4">100</td></tr>
+<tr><td class="name">末影人</td><td class="en">enderman</td><td class="base">9</td><td class="num0">9</td><td class="num1">13.5</td><td class="num2">18</td><td class="num3">27</td><td class="num4">36</td></tr>
+<tr><td class="name">唤魔者</td><td class="en">evoker</td><td class="base">12</td><td class="num0">12</td><td class="num1">18</td><td class="num2">24</td><td class="num3">36</td><td class="num4">48</td></tr>
+<tr><td class="name">恶魂</td><td class="en">ghast</td><td class="base">6</td><td class="num0">6</td><td class="num1">9</td><td class="num2">12</td><td class="num3">18</td><td class="num4">24</td></tr>
+<tr><td class="name">巨人</td><td class="en">giant</td><td class="base">22</td><td class="num0">22</td><td class="num1">33</td><td class="num2">44</td><td class="num3">66</td><td class="num4">88</td></tr>
+<tr><td class="name">守卫者</td><td class="en">guardian</td><td class="base">7</td><td class="num0">7</td><td class="num1">10.5</td><td class="num2">14</td><td class="num3">21</td><td class="num4">28</td></tr>
+<tr><td class="name">疣猪兽</td><td class="en">hoglin</td><td class="base">9</td><td class="num0">9</td><td class="num1">13.5</td><td class="num2">18</td><td class="num3">27</td><td class="num4">36</td></tr>
+<tr><td class="name">尸壳</td><td class="en">husk</td><td class="base">5</td><td class="num0">5</td><td class="num1">7.5</td><td class="num2">10</td><td class="num3">15</td><td class="num4">20</td></tr>
+<tr><td class="name">幻术师</td><td class="en">illusioner</td><td class="base">12</td><td class="num0">12</td><td class="num1">18</td><td class="num2">24</td><td class="num3">36</td><td class="num4">48</td></tr>
+<tr><td class="name">岩浆怪</td><td class="en">magma_cube</td><td class="base">4.5</td><td class="num0">4.5</td><td class="num1">6.75</td><td class="num2">9</td><td class="num3">13.5</td><td class="num4">18</td></tr>
+<tr><td class="name">幻翼</td><td class="en">phantom</td><td class="base">6</td><td class="num0">6</td><td class="num1">9</td><td class="num2">12</td><td class="num3">18</td><td class="num4">24</td></tr>
+<tr><td class="name">猪灵</td><td class="en">piglin</td><td class="base">5</td><td class="num0">5</td><td class="num1">7.5</td><td class="num2">10</td><td class="num3">15</td><td class="num4">20</td></tr>
+<tr><td class="name">猪灵蛮兵</td><td class="en">piglin_brute</td><td class="base">13</td><td class="num0">13</td><td class="num1">19.5</td><td class="num2">26</td><td class="num3">39</td><td class="num4">52</td></tr>
+<tr><td class="name">掠夺者</td><td class="en">pillager</td><td class="base">7</td><td class="num0">7</td><td class="num1">10.5</td><td class="num2">14</td><td class="num3">21</td><td class="num4">28</td></tr>
+<tr><td class="name">劫掠兽</td><td class="en">ravager</td><td class="base">17</td><td class="num0">17</td><td class="num1">25.5</td><td class="num2">34</td><td class="num3">51</td><td class="num4">68</td></tr>
+<tr><td class="name">潜影贝</td><td class="en">shulker</td><td class="base">9</td><td class="num0">9</td><td class="num1">13.5</td><td class="num2">18</td><td class="num3">27</td><td class="num4">36</td></tr>
+<tr><td class="name">骷髅</td><td class="en">skeleton</td><td class="base">5</td><td class="num0">5</td><td class="num1">7.5</td><td class="num2">10</td><td class="num3">15</td><td class="num4">20</td></tr>
+<tr><td class="name">史莱姆</td><td class="en">slime</td><td class="base">4</td><td class="num0">4</td><td class="num1">6</td><td class="num2">8</td><td class="num3">12</td><td class="num4">16</td></tr>
+<tr><td class="name">流浪者</td><td class="en">stray</td><td class="base">5.5</td><td class="num0">5.5</td><td class="num1">8.25</td><td class="num2">11</td><td class="num3">16.5</td><td class="num4">22</td></tr>
+<tr><td class="name">卫道士</td><td class="en">vindicator</td><td class="base">8</td><td class="num0">8</td><td class="num1">12</td><td class="num2">16</td><td class="num3">24</td><td class="num4">32</td></tr>
+<tr><td class="name">监守者</td><td class="en">warden</td><td class="base">25</td><td class="num0">25</td><td class="num1">37.5</td><td class="num2">50</td><td class="num3">75</td><td class="num4">100</td></tr>
+<tr><td class="name">女巫</td><td class="en">witch</td><td class="base">8</td><td class="num0">8</td><td class="num1">12</td><td class="num2">16</td><td class="num3">24</td><td class="num4">32</td></tr>
+<tr><td class="name">凋灵</td><td class="en">wither</td><td class="base">25</td><td class="num0">25</td><td class="num1">37.5</td><td class="num2">50</td><td class="num3">75</td><td class="num4">100</td></tr>
+<tr><td class="name">凋灵骷髅</td><td class="en">wither_skeleton</td><td class="base">8</td><td class="num0">8</td><td class="num1">12</td><td class="num2">16</td><td class="num3">24</td><td class="num4">32</td></tr>
+<tr><td class="name">僵尸疣猪兽</td><td class="en">zoglin</td><td class="base">10</td><td class="num0">10</td><td class="num1">15</td><td class="num2">20</td><td class="num3">30</td><td class="num4">40</td></tr>
+<tr><td class="name">僵尸</td><td class="en">zombie</td><td class="base">5</td><td class="num0">5</td><td class="num1">7.5</td><td class="num2">10</td><td class="num3">15</td><td class="num4">20</td></tr>
+<tr><td class="name">僵尸村民</td><td class="en">zombie_villager</td><td class="base">4.5</td><td class="num0">4.5</td><td class="num1">6.75</td><td class="num2">9</td><td class="num3">13.5</td><td class="num4">18</td></tr>
+<tr><td class="name">僵尸猪灵</td><td class="en">zombified_piglin</td><td class="base">5</td><td class="num0">5</td><td class="num1">7.5</td><td class="num2">10</td><td class="num3">15</td><td class="num4">20</td></tr>
+  </tbody>
+</table>
+</body></html>

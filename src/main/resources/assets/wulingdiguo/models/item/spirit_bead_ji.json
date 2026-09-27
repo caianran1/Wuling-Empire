@@ -1,0 +1,206 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "wulingdiguo:item/spirit_bead_ji"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 1
+      },
+      "model": "wulingdiguo:item/bead/blaze"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 2
+      },
+      "model": "wulingdiguo:item/bead/cave_spider"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 3
+      },
+      "model": "wulingdiguo:item/bead/creeper"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 4
+      },
+      "model": "wulingdiguo:item/bead/drowned"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 5
+      },
+      "model": "wulingdiguo:item/bead/elder_guardian"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 6
+      },
+      "model": "wulingdiguo:item/bead/ender_dragon"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 7
+      },
+      "model": "wulingdiguo:item/bead/enderman"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 9
+      },
+      "model": "wulingdiguo:item/bead/evoker"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 10
+      },
+      "model": "wulingdiguo:item/bead/ghast"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 11
+      },
+      "model": "wulingdiguo:item/bead/giant"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 12
+      },
+      "model": "wulingdiguo:item/bead/guardian"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 13
+      },
+      "model": "wulingdiguo:item/bead/hoglin"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 14
+      },
+      "model": "wulingdiguo:item/bead/husk"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 15
+      },
+      "model": "wulingdiguo:item/bead/illusioner"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 16
+      },
+      "model": "wulingdiguo:item/bead/magma_cube"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 17
+      },
+      "model": "wulingdiguo:item/bead/phantom"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 18
+      },
+      "model": "wulingdiguo:item/bead/piglin"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 19
+      },
+      "model": "wulingdiguo:item/bead/piglin_brute"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 20
+      },
+      "model": "wulingdiguo:item/bead/pillager"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 21
+      },
+      "model": "wulingdiguo:item/bead/ravager"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 22
+      },
+      "model": "wulingdiguo:item/bead/shulker"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 24
+      },
+      "model": "wulingdiguo:item/bead/skeleton"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 25
+      },
+      "model": "wulingdiguo:item/bead/slime"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 26
+      },
+      "model": "wulingdiguo:item/bead/stray"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 28
+      },
+      "model": "wulingdiguo:item/bead/vindicator"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 29
+      },
+      "model": "wulingdiguo:item/bead/warden"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 30
+      },
+      "model": "wulingdiguo:item/bead/witch"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 31
+      },
+      "model": "wulingdiguo:item/bead/wither"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 32
+      },
+      "model": "wulingdiguo:item/bead/wither_skeleton"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 33
+      },
+      "model": "wulingdiguo:item/bead/zoglin"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 34
+      },
+      "model": "wulingdiguo:item/bead/zombie"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 35
+      },
+      "model": "wulingdiguo:item/bead/zombie_villager"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 36
+      },
+      "model": "wulingdiguo:item/bead/zombified_piglin"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+# Gradle / Forge 构建产物
+.gradle/
+build/
+out/
+run/
+run-data/
+run-server/
+*.log
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+bin/
+
+# 便携 JDK 与临时下载（本机 JDK 为 8，构建需 1.20.1 所需的 17）
+_env/
+
+# 系统文件
+.DS_Store
+Thumbs.db

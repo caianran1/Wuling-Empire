@@ -1,0 +1,324 @@
+package com.wuling.empire.wuling;
+
+import com.wuling.empire.Config;
+import com.wuling.empire.capability.ISpiritPower;
+import com.wuling.empire.capability.ModCapabilities;
+import com.wuling.empire.item.ModItems;
+import com.wuling.empire.item.SpiritBeadItem;
+import com.wuling.empire.item.SpiritQuality;
+import com.wuling.empire.network.ModMessages;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+
+/**
+ * 武灵的「开启」与「凝聚」。
+ *
+ * 原文：开启武灵需要「武灵绑定器」（仅限创造模式），消耗灵珠，
+ *       灵珠种类决定修炼方向，品质决定境界上限。
+ * <b>2026-09-27 用户修订：品质不再决定境界上限 —— 所有人的上限都一样，
+ * 灵珠品质只决定修炼速度（见 {@link Config#cultivationBonus}）。</b>
+ *
+ * 两种动作：
+ *   - {@link #bind}     ：选定种类并绑定。入口是绑定器的 Shift+右键 / 创造绑定器右键。
+ *   - {@link #condense} ：把武灵凝聚成实物（Shift+M）。<b>不再需要绑定器</b>，改为消耗灵力。
+ *
+ * 2026-09-27 起多一条路：{@link #openByNpc} —— 生存玩家拿灵珠右键<b>村民牧师</b>，
+ * 由牧师替他开启武灵，种类<b>抽取</b>而非自选（绑定器是创造模式的自选入口）。
+ */
+public final class WuLingBinding {
+
+    private WuLingBinding() {
+    }
+
+    /**
+     * 绑定武灵（选定种类）。
+     *
+     * @param typeKey  玩家选定的种类；为空或非法时回退到随机抽取
+     * @param creative true=创造绑定器触发，强制覆盖且免费，并立即凝聚出实体
+     */
+    public static void bind(Player player, String typeKey, boolean creative) {
+        player.getCapability(ModCapabilities.WU_LING).ifPresent(holder -> {
+            if (holder.data().isBound() && !creative) {
+                // 已经拥有武灵，普通绑定器不能重复绑定（用创造绑定器切换）
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.bind_already",
+                        holder.data().displayName()));
+                return;
+            }
+            if (Config.BINDING_REQUIRES_NPC.get()) {
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.bind_need_npc"));
+                return;
+            }
+
+            if (creative) {
+                WuLingType type = typeKey == null || typeKey.isEmpty()
+                        ? WuLingType.roll(player.getRandom())
+                        : WuLingType.byKey(typeKey);
+                // 创造绑定器不消耗灵珠，所以没有品质加成，按基准速度（×1）开启；
+                // 上限与所有玩家一致（Config#maxRealm）
+                holder.data().bind(type, "creative", 1.0D);
+                player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                        SoundEvents.PLAYER_LEVELUP, player.getSoundSource(), 0.8F, 1.0F);
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.creative_bind",
+                        Component.translatable(type.translationKey())));
+                // 创造模式：绑定后立即凝聚出实体武灵（这次免费，不扣灵力）
+                condense(player, true);
+            } else {
+                if (!hasBinder(player)) {
+                    player.sendSystemMessage(Component.translatable("message.wulingdiguo.bind_need_binder"));
+                    return;
+                }
+                int need = Config.BINDING_CONSUMES_BEAD_COUNT.get();
+                ItemStack bead = findBead(player, need);
+                if (bead.isEmpty()) {
+                    player.sendSystemMessage(Component.translatable("message.wulingdiguo.bind_need_bead"));
+                    return;
+                }
+
+                SpiritQuality quality = SpiritBeadItem.getQuality(bead);
+                String source = SpiritBeadItem.getSource(bead);
+
+                WuLingType type = typeKey == null || typeKey.isEmpty()
+                        ? WuLingType.roll(player.getRandom())
+                        : WuLingType.byKey(typeKey);
+                // 品质只决定修炼速度，不决定上限
+                double bonus = Config.cultivationBonus(quality);
+
+                holder.data().bind(type, source, bonus);
+                bead.shrink(need);
+
+                player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                        SoundEvents.PLAYER_LEVELUP, player.getSoundSource(), 0.8F, 1.0F);
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.bind_success",
+                        Component.translatable(type.translationKey()),
+                        Component.translatable(quality.translationKey()),
+                        trim(bonus)));
+            }
+
+            if (player instanceof ServerPlayer serverPlayer) {
+                ModMessages.sendWuLingTo(serverPlayer);
+            }
+        });
+    }
+
+    /**
+     * 村民牧师「开启武灵」—— <b>抽取，而不是选择</b>（2026-09-27 用户设定）。
+     *
+     * <p>原文里开启武灵得有引路人，这里就落在村民牧师身上：玩家<b>手持灵珠右键牧师</b>，
+     * 牧师替他开武灵，修炼方向<b>由武灵自己抽</b>（权重见 {@link WuLingType#roll}，
+     * 稀有 1 : 常见 10），玩家不能挑。想要自己挑种类，只能走创造模式的
+     * {@link com.wuling.empire.item.WuLingBinderItem 武灵绑定器} ——
+     * 也就是「生存靠牧师抽签，创造靠绑定器自选」。
+     *
+     * <p>只对「还没有武灵」的玩家生效：已开启的不会被覆盖（要换先去
+     * {@code /wuling spirit unbind}）。
+     *
+     * @param npc 触发这次开启的牧师，仅用于音效 / 粒子的位置
+     * @return true = 这次交互被牧师接管了（调用方应取消原版交互，别弹出交易界面）
+     */
+    public static boolean openByNpc(Player player, LivingEntity npc) {
+        ItemStack offered = heldBead(player);
+        if (offered.isEmpty()) {
+            // 手里没拿灵珠 → 不打扰，让原版交易界面正常打开
+            return false;
+        }
+
+        player.getCapability(ModCapabilities.WU_LING).ifPresent(holder -> {
+            if (holder.data().isBound()) {
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.bind_already",
+                        holder.data().displayName()));
+                npcRefuse(player, npc);
+                return;
+            }
+
+            int need = Config.BINDING_CONSUMES_BEAD_COUNT.get();
+            if (offered.getCount() < need) {
+                player.sendSystemMessage(Component.translatable(
+                        "message.wulingdiguo.npc_open_need_bead", need));
+                npcRefuse(player, npc);
+                return;
+            }
+
+            SpiritQuality quality = SpiritBeadItem.getQuality(offered);
+            String source = SpiritBeadItem.getSource(offered);
+            // 抽取：不由玩家指定种类
+            WuLingType type = WuLingType.roll(player.getRandom());
+            // 品质只决定修炼速度，不决定上限
+            double bonus = Config.cultivationBonus(quality);
+
+            holder.data().bind(type, source, bonus);
+            offered.shrink(need);
+
+            npcRitual(player, npc);
+            player.sendSystemMessage(Component.translatable("message.wulingdiguo.npc_open_success",
+                    Component.translatable(type.translationKey()),
+                    Component.translatable(type.rarity().labelKey()),
+                    Component.translatable(quality.translationKey()),
+                    trim(bonus)));
+
+            if (player instanceof ServerPlayer serverPlayer) {
+                ModMessages.sendWuLingTo(serverPlayer);
+            }
+        });
+        return true;
+    }
+
+    /** 手里（主手 / 副手）拿着的灵珠；没拿返回空 */
+    private static ItemStack heldBead(Player player) {
+        ItemStack main = player.getMainHandItem();
+        if (isBead(main)) {
+            return main;
+        }
+        ItemStack off = player.getOffhandItem();
+        return isBead(off) ? off : ItemStack.EMPTY;
+    }
+
+    /** 开启仪式：附魔台音效 + 牧师点头 + 一圈符文与绿色粒子 */
+    private static void npcRitual(Player player, LivingEntity npc) {
+        player.level().playSound(null, npc.getX(), npc.getY(), npc.getZ(),
+                SoundEvents.ENCHANTMENT_TABLE_USE, player.getSoundSource(), 1.0F, 1.0F);
+        player.level().playSound(null, npc.getX(), npc.getY(), npc.getZ(),
+                SoundEvents.VILLAGER_YES, player.getSoundSource(), 1.0F, 1.0F);
+        player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.PLAYER_LEVELUP, player.getSoundSource(), 0.8F, 1.0F);
+        if (player.level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(ParticleTypes.ENCHANT,
+                    npc.getX(), npc.getY() + 1.4D, npc.getZ(), 60, 0.6D, 0.9D, 0.6D, 0.8D);
+            serverLevel.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+                    npc.getX(), npc.getY() + 1.8D, npc.getZ(), 8, 0.4D, 0.3D, 0.4D, 0.0D);
+        }
+    }
+
+    /** 牧师拒绝：摇头音 + 头顶冒火 */
+    private static void npcRefuse(Player player, LivingEntity npc) {
+        player.level().playSound(null, npc.getX(), npc.getY(), npc.getZ(),
+                SoundEvents.VILLAGER_NO, player.getSoundSource(), 1.0F, 1.0F);
+        if (player.level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(ParticleTypes.ANGRY_VILLAGER,
+                    npc.getX(), npc.getY() + 1.9D, npc.getZ(), 6, 0.4D, 0.2D, 0.4D, 0.0D);
+        }
+    }
+
+    /**
+     * 凝聚出实体武灵：按武灵种类 + 当前境界，在玩家面前生成对应的实物
+     * （剑武灵→剑、斧武灵→斧……境界决定材质档次，如钻石境界→钻石剑）。
+     *
+     * 0.2.14 起的两条新口径：
+     *   - <b>不需要武灵绑定器</b>（绑定器只用于「选择种类」，绑定完成后再也不依赖它）；
+     *   - <b>消耗灵力</b>（Config#CONDENSE_SPIRIT_COST），灵力不足就无法凝聚。
+     */
+    public static void condense(Player player) {
+        condense(player, false);
+    }
+
+    /**
+     * @param free true = 免费凝聚（创造绑定器绑定后自动送的那一次），不扣灵力、也不校验
+     */
+    public static void condense(Player player, boolean free) {
+        player.getCapability(ModCapabilities.WU_LING).ifPresent(holder -> {
+            if (!holder.data().isBound()) {
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.condense_need_bind"));
+                return;
+            }
+
+            float cost = free ? 0.0F : (float) (double) Config.CONDENSE_SPIRIT_COST.get();
+            ISpiritPower spirit = player.getCapability(ModCapabilities.SPIRIT_POWER).orElse(null);
+            if (!free) {
+                if (spirit == null) {
+                    return;
+                }
+                if (spirit.getSpirit() < cost - 0.001F) {
+                    player.sendSystemMessage(Component.translatable(
+                            "message.wulingdiguo.condense_need_spirit", trim(cost)));
+                    return;
+                }
+            }
+
+            WuLingData data = holder.data();
+            ItemStack item = data.type().manifest(data.realmOrdinal(), data.stageOrdinal());
+
+            if (cost > 0.0F && spirit != null) {
+                spirit.addSpirit(-cost);
+                if (player instanceof ServerPlayer serverPlayer) {
+                    ModMessages.sendSpiritTo(serverPlayer);
+                }
+            }
+
+            double x = player.getX();
+            double y = player.getY() + 1.0D;
+            double z = player.getZ();
+            ItemEntity entity = new ItemEntity(player.level(), x, y, z, item);
+            entity.setPickUpDelay(0);
+            player.level().addFreshEntity(entity);
+
+            player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.PLAYER_LEVELUP, player.getSoundSource(), 0.8F, 1.2F);
+            if (cost > 0.0F) {
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.condense_success",
+                        item.getHoverName(),
+                        trim(cost),
+                        trim(spirit == null ? 0.0F : spirit.getSpirit())));
+            } else {
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.condense_success_free",
+                        item.getHoverName()));
+            }
+        });
+    }
+
+    /** 3.0 → "3"，7.5 → "7.5" */
+    private static String trim(double value) {
+        return Math.abs(value - Math.round(value)) < 0.005D
+                ? String.valueOf(Math.round(value))
+                : String.valueOf(Math.round(value * 100.0D) / 100.0D);
+    }
+
+    /** 5.0 → "5"，7.5 → "7.5" */
+    private static String trim(float value) {
+        return Math.abs(value - Math.round(value)) < 0.05F
+                ? String.valueOf(Math.round(value))
+                : String.format("%.1f", value);
+    }
+
+    private static boolean hasBinder(Player player) {
+        Container inventory = player.getInventory();
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            ItemStack stack = inventory.getItem(i);
+            if (stack.is(ModItems.WU_LING_BINDER.get())
+                    || stack.is(ModItems.CREATIVE_WU_LING_BINDER.get())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 取用顺序：副手 → 主手 → 背包自上而下 */
+    private static ItemStack findBead(Player player, int need) {
+        ItemStack offhand = player.getOffhandItem();
+        if (isBead(offhand) && offhand.getCount() >= need) {
+            return offhand;
+        }
+        ItemStack main = player.getMainHandItem();
+        if (isBead(main) && main.getCount() >= need) {
+            return main;
+        }
+        Container inventory = player.getInventory();
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            ItemStack stack = inventory.getItem(i);
+            if (isBead(stack) && stack.getCount() >= need) {
+                return stack;
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    private static boolean isBead(ItemStack stack) {
+        return !stack.isEmpty() && stack.getItem() instanceof SpiritBeadItem;
+    }
+}
