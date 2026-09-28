@@ -41,6 +41,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 OWNER = 'caianran1'
@@ -107,6 +108,40 @@ def api(path, method='GET', payload=None, raw=False, content_type=None,
         if attempt < retries:
             sys.stderr.write(f'  … 第 {attempt} 次失败（{last}），{2 * attempt}s 后重试\n')
             time.sleep(2 * attempt)
+    return None, last
+
+
+def upload_asset(upload_url, name, blob, tries=8):
+    """把发布资产上传到 uploads.github.com。
+
+    ⚠️ 资产上传**只能**用 `uploads.github.com` 作为 host。
+    换成 `api.github.com` 会 404 —— 那里的 `releases/{id}/assets` 只支持 GET（列资产）。
+    所以这里**不做 host 回退**，只对它多试几次。
+
+    沙箱代理对这个主机的拦截是**间歇性**的（`Tunnel connection failed: 502 Bad Gateway`）：
+    同一时刻同类请求可能有的通有的不通，唯一可靠的办法就是重试。
+    """
+    url = f'{upload_url}?name={urllib.parse.quote(name)}'
+    last = '未执行'
+    for attempt in range(1, tries + 1):
+        req = urllib.request.Request(url, data=blob, method='POST')
+        req.add_header('Authorization', 'token ' + TOKEN)
+        req.add_header('Accept', 'application/vnd.github+json')
+        req.add_header('User-Agent', UA)
+        req.add_header('Content-Type', 'application/java-archive')
+        try:
+            with urllib.request.urlopen(req, timeout=300) as r:
+                return r.status, json.loads(r.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode('utf-8', 'replace')[:200]
+            last = f'HTTP {e.code} {detail}'
+            if e.code != 429 and e.code < 500:
+                return e.code, detail          # 确定性错误（如 422 同名资产），不重试
+        except Exception as e:
+            last = repr(e)
+        if attempt < tries:
+            print(f'  … 上传第 {attempt} 次失败（{last[:90]}），3s 后重试')
+            time.sleep(3)
     return None, last
 
 
@@ -311,16 +346,7 @@ def cmd_release(version, notes=None, jar=None):
     upload = release['upload_url'].split('{')[0]
     with open(jar, 'rb') as f:
         blob = f.read()
-    st, asset = api(f'{upload}?name={name}', 'POST', blob, raw=True,
-                    content_type='application/java-archive',
-                    host='https://uploads.github.com')
-    if st != 201:
-        # uploads.github.com 常被沙箱代理拦截（Tunnel connection failed: 502 Bad Gateway），
-        # 换 api.github.com 再来一轮 —— GitHub 的资产上传端点两边都接受。
-        print(f'[!] uploads.github.com 未成功（{st} {asset}），改用 api.github.com 重试')
-        st, asset = api(f'/repos/{OWNER}/{REPO}/releases/{release["id"]}/assets?name={name}',
-                        'POST', blob, raw=True,
-                        content_type='application/java-archive')
+    st, asset = upload_asset(upload, name, blob)
     if st != 201:
         sys.exit(f'[x] 上传资产失败: {st} {asset}')
     print(f'[OK] 资产已上传：{asset["name"]}  {asset["size"]:,} B')
