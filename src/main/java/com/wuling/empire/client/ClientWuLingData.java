@@ -46,6 +46,14 @@ public final class ClientWuLingData {
         return submitted;
     }
 
+    /**
+     * 退出世界时清空缓存（bound 回到 false → 灵力 HUD 直接隐藏）。
+     * 不清的话，「开过武灵的存档 → 没开武灵的存档」会有一小段残留显示。
+     */
+    public static void reset() {
+        set(false, WuLingType.SWORD.key(), "", 0, 0, 0.0D, 1.0D, 1.0D, Map.of());
+    }
+
     public static boolean isBound() {
         return bound;
     }

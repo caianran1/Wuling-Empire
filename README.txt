@@ -1,5 +1,5 @@
 
-《武灵帝国》(WuLing Diguo) — 运行环境与支持版本
+《武灵帝国》(WuLing Empire) — 运行环境与支持版本
 ================================================
 Minecraft 1.20.1 (Forge)
 Java 17
@@ -9,7 +9,7 @@ Java 17
     例：Wuling-Empire-v0.2.27.jar
 （0.2.27 起改名；更早的产物叫 wulingdiguo-0.2.x.jar，只是文件名不同，内容无差别。）
 文件名由 build.gradle 的 base.archivesName='Wuling-Empire' 与 version="v"+mod_version 决定。
-mod_id 仍然是 wulingdiguo，游戏 Mod 列表里显示的名字仍是 WuLing Diguo / 武灵帝国。
+mod_id 仍然是 wulingdiguo，游戏 Mod 列表里显示的名字是 WuLing Empire / 武灵帝国。
 
 支持 1.20.1 的**全部** Forge 版本：47.0.0 ~ 47.4.23（共 132 个），
 mods.toml 中已声明 loaderVersion="[47,)" 与 forge versionRange="[47,)"。

@@ -19,6 +19,15 @@ bin/
 # 便携 JDK 与临时下载（本机 JDK 为 8，构建需 1.20.1 所需的 17）
 _env/
 
+# WorkBuddy 项目数据（开发笔记 / 记忆，不上传到公开仓库）
+.workbuddy/
+
+# Gradle 缓存的时间戳备份目录
+.gradle_bak_*/
+
+# 游戏崩溃错误报告
+错误报告-*.zip
+
 # 系统文件
 .DS_Store
 Thumbs.db

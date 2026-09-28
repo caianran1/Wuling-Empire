@@ -38,6 +38,10 @@ public final class ClientTickHandler {
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
+            // 没在世界里（主菜单 / 退档途中）：清掉客户端缓存，
+            // 免得下次进入「没开武灵」的存档时灵力 HUD 先闪一下
+            ClientWuLingData.reset();
+            ClientSpiritData.reset();
             return;
         }
 

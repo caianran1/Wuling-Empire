@@ -18,6 +18,12 @@ public final class ClientSpiritData {
         ClientSpiritData.max = max;
     }
 
+    /** 退出世界时清空：max = 0 表示「还没有数据」，比例按 0 处理 */
+    public static void reset() {
+        ClientSpiritData.spirit = 0.0F;
+        ClientSpiritData.max = 0.0F;
+    }
+
     public static float getSpirit() {
         return spirit;
     }
