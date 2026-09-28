@@ -229,6 +229,8 @@ def cmd_sync(message=None, do_release=None):
             sys.exit(f'[x] 更新分支失败: {st} {r}')
         print(f'[OK] 已提交并推送到 main：{base_commit[:8]} → {c["sha"][:8]}')
         print('     ' + c['html_url'])
+        print('     注意：提交由 API 创建，本地 HEAD 不会前进（缺该 commit 对象），')
+        print('     所以本地 git status 可能仍显示这些文件「有改动」—— 以本脚本 status 为准。')
 
     if do_release is not None:
         cmd_release(do_release)
