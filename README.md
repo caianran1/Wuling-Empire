@@ -4,7 +4,12 @@
 
 ## 下载
 
-最新版本见 [**Releases**](https://github.com/caianran1/Wuling-Empire/releases/latest) —— 直接下载 `Wuling-Empire-vX.Y.Z.jar` 放进 `.minecraft/mods/` 即可。
+最新版本见 [**Releases**](https://github.com/caianran1/Wuling-Empire/releases/latest) —— 下载对应的 jar 放进 `.minecraft/mods/` 即可。
+
+| 产物名 | 含义 |
+|---|---|
+| `Wuling-Empire-v0.3.0.jar` | **正式版**（`mod_suffix` 留空） |
+| `Wuling-Empire-v0.3.0-test.jar` | **测试版**（`mod_suffix=test`） |
 
 > `build/` 目录不在仓库里（构建中间产物，每次编译重新生成）。可下载的模组文件一律放在 **Releases** 附件中。
 
@@ -45,24 +50,29 @@
 ## 从源码构建
 
 ```bash
-./gradlew build          # 产物：build/libs/Wuling-Empire-v<版本>.jar
-./gradlew build -x test  # 跳过测试
+./gradlew build                     # 正式版：build/libs/Wuling-Empire-v<版本>.jar
+./gradlew build -Pmod_suffix=test   # 测试版：build/libs/Wuling-Empire-v<版本>-test.jar
+./gradlew build -x test             # 跳过测试
 ```
+
+产物名后缀由 `gradle.properties` 的 `mod_suffix` 控制：**留空 = 正式版**，填 `test` / `pre1` / `rc1` 等任意单词 = 测试版。只影响 jar 文件名，`mod_id`、`mods.toml` 里的 `version`、游戏内显示名都不变。
 
 ## 文档
 
 - [`docs/武灵系统设计规格.md`](docs/武灵系统设计规格.md) —— 完整设计规格与历代口径变更
 - [`README.txt`](README.txt) —— 运行环境与支持版本
-- [`changelog.txt`](changelog.txt) —— 版本变更记录
+- [`changelog.txt`](changelog.txt) —— 随 MDK 附带的 **Forge 官方**变更记录（不是本模组的）
+- 本模组的版本变更：见 [**Releases**](https://github.com/caianran1/Wuling-Empire/releases)
 
 ## 发布流程
 
 仓库自带发布脚本（走 GitHub REST API，不依赖 `git push`）：
 
 ```bash
-python tools/publish_github.py status          # 查看本地与远程差异
-python tools/publish_github.py sync            # 同步源码到 main
-python tools/publish_github.py release 0.2.29  # 建 tag + Release + 上传 jar
+python tools/publish_github.py status              # 查看本地与远程差异
+python tools/publish_github.py sync                # 同步源码到 main
+python tools/publish_github.py release 0.3.0       # 正式版：tag v0.3.0 + 上传 Wuling-Empire-v0.3.0.jar
+python tools/publish_github.py release 0.3.1-test  # 测试版：tag v0.3.1-test + 上传对应 jar
 ```
 
 ## 许可与致谢

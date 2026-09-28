@@ -5,14 +5,17 @@ plugins {
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
 }
 
-// ── 产物命名（0.2.27 起）────────────────────────────────────────────
-// 发布用的 jar 文件名 = Wuling-Empire-v<mod_version>.jar
-//   例：Wuling-Empire-v0.2.27.jar
+// ── 产物命名（0.2.27 起；0.3.0 加测试版后缀）─────────────────────────
+//   正式版：Wuling-Empire-v<mod_version>.jar        例 Wuling-Empire-v0.3.0.jar
+//   测试版：Wuling-Empire-v<mod_version>-<后缀>.jar  例 Wuling-Empire-v0.3.0-test.jar
+// 后缀取自 gradle.properties 的 mod_suffix：留空 = 正式版。
+// 临时覆盖（不改文件）：gradle build -Pmod_suffix=test
 // 做法：archivesName 给品牌名，version 加 'v' 前缀 —— 两者都从 base 派生，
 // 所以 jar / reobfJar / sourcesJar 得到的是同一个名字，不会出现两份产物。
-// 注意：这只影响「文件名」，与 mod_id（wulingdiguo）、mods.toml 里的
-// displayName 和 version 字段都无关，游戏内显示依旧是 WuLing Diguo / 武灵帝国 0.2.27。
-version = "v${mod_version}"
+// 注意：这只影响「文件名」，与 mod_id（wulingdiguo）、mods.toml 里的 version
+// 字段都无关；游戏内显示依旧是 WuLing Empire / 武灵帝国 + mod_version。
+def modSuffix = (findProperty('mod_suffix') ?: '').toString().trim()
+version = "v${mod_version}" + (modSuffix ? "-${modSuffix}" : '')
 group = mod_group_id
 
 base {
@@ -185,8 +188,9 @@ tasks.named('jar', Jar).configure {
                 'Specification-Vendor'    : mod_authors,
                 'Specification-Version'   : '1', // We are version 1 of ourselves
                 'Implementation-Title'    : project.name,
-                // 保持纯语义化版本（不带文件名用的 'v' 前缀），避免解析 Manifest 的工具踩坑
-                'Implementation-Version'  : mod_version,
+                // 纯语义化版本（不带文件名用的 'v' 前缀），避免解析 Manifest 的工具踩坑；
+                // 测试版带上后缀（如 0.3.0-test），便于区分正式版与测试版产物。
+                'Implementation-Version'  : mod_version + (modSuffix ? "-${modSuffix}" : ''),
                 'Implementation-Vendor'   : mod_authors,
                 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
