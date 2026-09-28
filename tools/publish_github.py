@@ -11,11 +11,15 @@ WuLing Empire — GitHub 发布工具（走 REST API，不依赖 git push）
     所以本脚本全程使用 GitHub REST API。
 
 用法：
-    python tools/publish_github.py status            # 只看本地与远程的差异
-    python tools/publish_github.py sync              # 把源码变化提交并推送到 main
-    python tools/publish_github.py sync -m "说明"    # 自定义提交信息
-    python tools/publish_github.py release 0.2.29    # 建 tag + Release + 上传 jar
-    python tools/publish_github.py sync --release    # 同步源码后再发布 jar
+    python tools/publish_github.py status              # 只看本地与远程的差异
+    python tools/publish_github.py sync                # 把源码变化提交并推送到 main
+    python tools/publish_github.py sync -m "说明"      # 自定义提交信息
+    python tools/publish_github.py release 0.3.0       # 正式版：tag v0.3.0 + 上传 Wuling-Empire-v0.3.0.jar
+    python tools/publish_github.py release 0.3.1-test  # 测试版：tag v0.3.1-test + 上传对应 jar
+    python tools/publish_github.py sync --release      # 同步源码后再发布 jar
+
+    产物路径按 `Wuling-Empire-<tag>.jar` 拼（tag 含后缀就自动带后缀）；
+    要用别的文件名再加 `--jar <路径>`，追加说明用 `-n "..."`。
 
 设计要点：
     * 差异比对不用 git status / HEAD，而是「远程 tree 的 blob sha」对
@@ -25,6 +29,8 @@ WuLing Empire — GitHub 发布工具（走 REST API，不依赖 git push）
     * 二进制安全：blob 以 base64 提交，jar/png 不会被破坏。
     * 忽略规则交给 git（ls-files --others --exclude-standard），
       所以 .gitignore 里的 build/、_env/、.workbuddy/ 天然不会被上传。
+    * 所有请求自动重试瞬时错误（代理 502 / HTTP 5xx / 429）；资产上传还会在
+      uploads.github.com 失败时自动切到 api.github.com。
 """
 
 import base64
@@ -33,6 +39,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -64,29 +71,43 @@ TOKEN = token()
 
 
 def api(path, method='GET', payload=None, raw=False, content_type=None,
-        timeout=120, host=API):
+        timeout=120, host=API, retries=4):
+    """返回 (status, body)；status=None 表示网络层失败。
+
+    自动重试瞬时错误：沙箱代理偶发 `Tunnel connection failed: 502 Bad Gateway`，
+    以及 HTTP 5xx / 429。4xx（除 429）是确定性错误，立即返回不重试。
+    """
     data = None
     if payload is not None:
         data = payload if raw else json.dumps(payload).encode('utf-8')
-    req = urllib.request.Request(host + path, data=data, method=method)
-    req.add_header('Authorization', 'token ' + TOKEN)
-    req.add_header('Accept', 'application/vnd.github+json')
-    req.add_header('User-Agent', UA)
-    if data is not None:
-        req.add_header('Content-Type', content_type or 'application/json')
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            body = r.read().decode('utf-8')
-            return r.status, (json.loads(body) if body.strip() else {})
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode('utf-8', 'replace')
+    last = '未执行'
+    for attempt in range(1, retries + 1):
+        req = urllib.request.Request(host + path, data=data, method=method)
+        req.add_header('Authorization', 'token ' + TOKEN)
+        req.add_header('Accept', 'application/vnd.github+json')
+        req.add_header('User-Agent', UA)
+        if data is not None:
+            req.add_header('Content-Type', content_type or 'application/json')
         try:
-            detail = json.loads(detail).get('message', detail)
-        except Exception:
-            pass
-        return e.code, detail
-    except Exception as e:
-        return None, repr(e)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                body = r.read().decode('utf-8')
+                return r.status, (json.loads(body) if body.strip() else {})
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode('utf-8', 'replace')
+            try:
+                detail = json.loads(detail).get('message', detail)
+            except Exception:
+                pass
+            if e.code >= 500 or e.code == 429:
+                last = f'HTTP {e.code} {detail}'
+            else:
+                return e.code, detail
+        except Exception as e:
+            last = repr(e)
+        if attempt < retries:
+            sys.stderr.write(f'  … 第 {attempt} 次失败（{last}），{2 * attempt}s 后重试\n')
+            time.sleep(2 * attempt)
+    return None, last
 
 
 def git(*args, binary=False):
@@ -293,6 +314,13 @@ def cmd_release(version, notes=None, jar=None):
     st, asset = api(f'{upload}?name={name}', 'POST', blob, raw=True,
                     content_type='application/java-archive',
                     host='https://uploads.github.com')
+    if st != 201:
+        # uploads.github.com 常被沙箱代理拦截（Tunnel connection failed: 502 Bad Gateway），
+        # 换 api.github.com 再来一轮 —— GitHub 的资产上传端点两边都接受。
+        print(f'[!] uploads.github.com 未成功（{st} {asset}），改用 api.github.com 重试')
+        st, asset = api(f'/repos/{OWNER}/{REPO}/releases/{release["id"]}/assets?name={name}',
+                        'POST', blob, raw=True,
+                        content_type='application/java-archive')
     if st != 201:
         sys.exit(f'[x] 上传资产失败: {st} {asset}')
     print(f'[OK] 资产已上传：{asset["name"]}  {asset["size"]:,} B')
