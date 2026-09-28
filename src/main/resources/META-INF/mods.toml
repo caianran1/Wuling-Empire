@@ -30,7 +30,8 @@ displayName="${mod_name}" #mandatory
 # A file name (in the root of the mod JAR) containing a logo for display
 #logoFile="examplemod.png" #optional
 # A text field displayed in the mod UI
-#credits="" #optional
+# 致谢：本模组改编自《我的世界之武灵帝国》，谨向原作者致敬。
+credits="${mod_credits}" #optional
 # A text field displayed in the mod UI
 authors="${mod_authors}" #optional
 # Display Test controls the display for your mod in the server connection screen

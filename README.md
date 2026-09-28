@@ -75,6 +75,18 @@ python tools/publish_github.py release 0.3.0       # 正式版：tag v0.3.0 + �
 python tools/publish_github.py release 0.3.1-test  # 测试版：tag v0.3.1-test + 上传对应 jar
 ```
 
-## 许可与致谢
+## 致谢
 
-见 [`LICENSE.txt`](LICENSE.txt) 与 [`CREDITS.txt`](CREDITS.txt)。
+**本模组是《我的世界之武灵帝国》的改编作品，谨向原作者致敬。**
+
+| 对象 | 说明 |
+|---|---|
+| **双子动漫**（ShuangZi Animation） | 《我的世界之武灵帝国》**原作者**。本模组的世界观、灵珠 / 武灵 / 境界体系等核心设定均取自这部作品 |
+| 风叔叔 | 《我的世界之武灵帝国》播讲 |
+
+游戏内也可看到这行致谢：Mod 列表 → 选中 **WuLing Empire / 武灵帝国** → Credits 栏。
+
+## 许可
+
+- [`LICENSE.txt`](LICENSE.txt) —— 本项目基于 Forge MDK，含 Forge / FML / MCP 的许可与授权声明
+- [`CREDITS.txt`](CREDITS.txt) —— Forge 项目自身的致谢（随 MDK 附带，非本模组所写）

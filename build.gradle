@@ -172,6 +172,10 @@ tasks.named('processResources', ProcessResources).configure {
             loader_version_range: loader_version_range,
             mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
             mod_authors: mod_authors, mod_description: mod_description,
+            // mods.toml 用的致谢字段。⚠️ 每在 mods.toml 里新引一个 ${...}，
+            // 都必须在这里登记，否则 processResources 会报
+            // 「Missing property (xxx) for Groovy template expansion」。
+            mod_credits: mod_credits,
     ]
     inputs.properties replaceProperties
 
