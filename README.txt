@@ -6,27 +6,15 @@ Java 17
 
 【发布产物命名】
 构建出来的 jar 统一叫  Wuling-Empire-v<版本号>.jar
-    例：Wuling-Empire-v0.2.27.jar
-（0.2.27 起改名；更早的产物叫 wulingdiguo-0.2.x.jar，只是文件名不同，内容无差别。）
-文件名由 build.gradle 的 base.archivesName='Wuling-Empire' 与 version="v"+mod_version 决定。
+    例：Wuling-Empire-v0.3.1.jar
+后缀 -test 表示测试版，正式版不带后缀。
 mod_id 仍然是 wulingdiguo，游戏 Mod 列表里显示的名字是 WuLing Empire / 武灵帝国。
 
-支持 1.20.1 的**全部** Forge 版本：47.0.0 ~ 47.4.23（共 132 个），
-mods.toml 中已声明 loaderVersion="[47,)" 与 forge versionRange="[47,)"。
-
-【为什么能全版本支持】
-gradle.properties 里的 forge_version 故意锁在 1.20.1 的**最低版 47.0.0**，
-编译产物只引用 47.0.0 就已存在的 API，因此可以在更高的 47.x 上加载。
-反过来说：升级 forge_version 后若引入了新版独有的 API，产物就不再向下兼容。
-
-【想在新版 Forge 上调试】
-改 gradle.properties 的 forge_version，或临时用命令行属性覆盖：
-    gradle runClient -Pforge_version=47.4.23
+支持 1.20.1 的 Forge，即 47.x 全系。
 
 【注意】
-主类 WulingEmpire 必须保留**无参构造函数**（Forge 47.0.0~47.3.7 只认无参构造函数）。
-ResourceLocation 请用 new ResourceLocation(ns, path)，不要用 fromNamespaceAndPath 等
-后期才 backport 进来的静态工厂。
+主类 WulingEmpire 必须保留**无参构造函数**。
+ResourceLocation 请用 new ResourceLocation(ns, path)。
 
 详细说明见 docs/武灵系统设计规格.md 第九章「Forge 版本兼容性」。
 
