@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.wuling.empire.WulingEmpire;
 import com.wuling.empire.network.ModMessages;
 import com.wuling.empire.network.WuLingCondensePacket;
+import com.wuling.empire.wuling.WuLingType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
@@ -17,7 +18,9 @@ import org.lwjgl.glfw.GLFW;
  *
  * <ul>
  *   <li><b>Shift + M</b> → 发包给服务端「凝聚」：服务端按已绑定的武灵种类 + 当前境界，
- *       在玩家面前生成对应实物（如钻石境界的剑武灵 → 钻石剑）。不开任何界面。</li>
+ *       在玩家面前生成对应实物（如钻石境界的剑武灵 → 钻石剑）。不开任何界面。
+ *       <b>例外：书武灵</b>的凝聚物是附魔书，附魔与等级要玩家自己挑，
+ *       所以这一档改为打开 {@link WuLingBookScreen}（2026-10-01）。</li>
  *   <li><b>Shift + N</b> → 直接打开武灵升级面板（纯客户端界面，数据由服务端同步过来）。</li>
  * </ul>
  *
@@ -62,6 +65,10 @@ public final class ClientTickHandler {
             if (!shift) {
                 mc.player.sendSystemMessage(
                         Component.translatable("message.wulingdiguo.condense_need_shift"));
+            } else if (ClientWuLingData.isBound() && ClientWuLingData.type() == WuLingType.BOOK) {
+                // 书武灵的凝聚物是附魔书，附魔与等级由玩家挑 —— 先开选择界面，
+                // 选中后由界面发包走 WuLingBinding#condenseBook
+                mc.setScreen(new WuLingBookScreen());
             } else {
                 ModMessages.INSTANCE.sendToServer(new WuLingCondensePacket());
             }

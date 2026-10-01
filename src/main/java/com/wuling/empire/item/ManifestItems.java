@@ -58,6 +58,16 @@ public final class ManifestItems {
     /** 给凝聚物打标记用的 NBT 键，值为武灵种类 key（护甲固定为 "armor"） */
     public static final String TAG_MANIFEST = "WuLingManifest";
 
+    /**
+     * 自选附魔书用的 NBT 键：玩家在附魔书凝聚界面里挑了哪条附魔、几级。
+     *
+     * <p>必须记下来 —— 书武灵的凝聚物默认只带「耐久」，境界提升时
+     * {@code WuLingBinding#refreshManifestItems} 会把旧件换成新境界的那件，
+     * 若不还原附魔，玩家挑的附魔会被冲成默认耐久。
+     */
+    public static final String TAG_BOOK_ENCHANT = "WuLingBookEnchant";
+    public static final String TAG_BOOK_LEVEL = "WuLingBookLevel";
+
     /** 护甲四件的部位翻译键，下标与 {@link #armorIndex(ArmorItem.Type)} 一致 */
     public static final String[] ARMOR_PART_KEYS = {
             "wuling.armor.helmet", "wuling.armor.chestplate",
@@ -166,6 +176,31 @@ public final class ManifestItems {
             return null;
         }
         return WuLingType.byKey(tag.getString(TAG_MANIFEST));
+    }
+
+    /** 给「自选附魔书」记下所选附魔与等级 */
+    public static void markBook(ItemStack stack, String enchantId, int level) {
+        CompoundTag tag = stack.getOrCreateTag();
+        tag.putString(TAG_BOOK_ENCHANT, enchantId);
+        tag.putInt(TAG_BOOK_LEVEL, Math.max(1, level));
+    }
+
+    /** 自选附魔书所选附魔的注册名（如 {@code minecraft:sharpness}）；不是自选附魔书则返回 null */
+    public static String bookEnchant(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        if (tag == null || !tag.contains(TAG_BOOK_ENCHANT, Tag.TAG_STRING)) {
+            return null;
+        }
+        String id = tag.getString(TAG_BOOK_ENCHANT);
+        return id.isEmpty() ? null : id;
+    }
+
+    /** 自选附魔书所选等级；缺省 1 */
+    public static int bookLevel(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.contains(TAG_BOOK_LEVEL, Tag.TAG_INT)
+                ? Math.max(1, tag.getInt(TAG_BOOK_LEVEL))
+                : 1;
     }
 
     // ===================== 内部：构造物品 =====================

@@ -50,6 +50,9 @@ public final class ModMessages {
         INSTANCE.registerMessage(5, WuLingSubmitPacket.class,
                 WuLingSubmitPacket::encode, WuLingSubmitPacket::decode,
                 WuLingSubmitPacket::handle);
+        INSTANCE.registerMessage(6, WuLingBookPacket.class,
+                WuLingBookPacket::encode, WuLingBookPacket::decode,
+                WuLingBookPacket::handle);
     }
 
     /** 把玩家的灵力值推送给该玩家的客户端 */

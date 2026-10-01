@@ -10,6 +10,7 @@ import com.wuling.empire.item.SpiritQuality;
 import com.wuling.empire.network.ModMessages;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -18,7 +19,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /**
  * 武灵的「开启」与「凝聚」。
@@ -289,6 +292,71 @@ public final class WuLingBinding {
     }
 
     /**
+     * 凝聚「自选附魔书」—— 书武灵的专属入口。
+     *
+     * <p>2026-10-01 用户口径：书武灵按 Shift+M 不再直接掉一本附魔书，
+     * 而是先打开 {@code client/WuLingBookScreen}，让玩家把<b>附魔和等级一起挑</b>，
+     * 挑完再走这里生成（界面只负责选择，判定与消耗都在服务端）。
+     *
+     * <p>与 {@link #condense} 的区别只有两点：附魔由玩家指定（不再固定给耐久），
+     * 以及把选择记进物品 NBT —— 境界提升换新时靠它还原，否则会被冲成默认附魔。
+     * 消耗的灵力与普通凝聚相同。
+     *
+     * @param enchantId 附魔的注册名（如 {@code minecraft:sharpness}）
+     * @param level     附魔等级；服务端会再夹一次 [1, 该附魔上限]
+     */
+    public static void condenseBook(Player player, String enchantId, int level) {
+        player.getCapability(ModCapabilities.WU_LING).ifPresent(holder -> {
+            WuLingData data = holder.data();
+            if (!data.isBound()) {
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.condense_need_bind"));
+                return;
+            }
+            if (data.type() != WuLingType.BOOK) {
+                player.sendSystemMessage(Component.translatable("message.wulingdiguo.book_need_book_type"));
+                return;
+            }
+
+            Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue(new ResourceLocation(enchantId));
+            if (enchantment == null) {
+                return;
+            }
+            int lvl = Math.max(1, Math.min(level, enchantment.getMaxLevel()));
+
+            float cost = (float) (double) Config.CONDENSE_SPIRIT_COST.get();
+            ISpiritPower spirit = player.getCapability(ModCapabilities.SPIRIT_POWER).orElse(null);
+            if (spirit == null) {
+                return;
+            }
+            if (spirit.getSpirit() < cost - 0.001F) {
+                player.sendSystemMessage(Component.translatable(
+                        "message.wulingdiguo.condense_need_spirit", trim(cost)));
+                return;
+            }
+            spirit.addSpirit(-cost);
+            if (player instanceof ServerPlayer serverPlayer) {
+                ModMessages.sendSpiritTo(serverPlayer);
+            }
+
+            // 与普通凝聚同一件物品（<境界>_书），只是附魔换成玩家挑的那条
+            ItemStack book = new ItemStack(ManifestItems.single(data.realm(), WuLingType.BOOK));
+            book.enchant(enchantment, lvl);
+            ManifestItems.markManifest(book, WuLingType.BOOK);
+            ManifestItems.markBook(book, enchantId, lvl);
+
+            ItemEntity entity = new ItemEntity(player.level(),
+                    player.getX(), player.getY() + 1.0D, player.getZ(), book);
+            entity.setPickUpDelay(0);
+            player.level().addFreshEntity(entity);
+
+            player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.PLAYER_LEVELUP, player.getSoundSource(), 0.8F, 1.2F);
+            player.sendSystemMessage(Component.translatable("message.wulingdiguo.book_condensed",
+                    enchantment.getFullname(lvl), trim(cost), trim(spirit.getSpirit())));
+        });
+    }
+
+    /**
      * 境界提升后，把背包里所有凝聚出的武灵实物<b>换成新境界的同款</b>。
      *
      * <p>2026-10-01 用户口径：「每一级升级时手上的武灵物品也会一同升级」。
@@ -322,6 +390,18 @@ public final class WuLingBinding {
                     armorType == null ? -1 : ManifestItems.armorIndex(armorType));
             if (fresh.isEmpty()) {
                 continue;
+            }
+            // 自选附魔书：换新会把附魔冲成默认的耐久，得把玩家挑的那条还原回去
+            String bookEnchantId = ManifestItems.bookEnchant(old);
+            if (bookEnchantId != null) {
+                Enchantment enchantment =
+                        ForgeRegistries.ENCHANTMENTS.getValue(new ResourceLocation(bookEnchantId));
+                if (enchantment != null) {
+                    int lvl = Math.min(ManifestItems.bookLevel(old), enchantment.getMaxLevel());
+                    fresh.getEnchantmentTags().clear();
+                    fresh.enchant(enchantment, lvl);
+                    ManifestItems.markBook(fresh, bookEnchantId, lvl);
+                }
             }
             inventory.setItem(i, fresh);
             changed++;
