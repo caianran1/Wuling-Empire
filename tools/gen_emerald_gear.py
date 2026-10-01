@@ -19,9 +19,13 @@
   textures/item/emerald_axe.png            斧
   textures/item/emerald_pickaxe.png        镐
   textures/item/emerald_shovel.png         铲
+  textures/item/emerald_helmet.png         头盔（物品图标）
   textures/item/emerald_chestplate.png     胸甲（物品图标）
-  textures/models/armor/emerald_layer_1.png  胸甲（穿在身上时的盔甲层）
-  models/item/emerald_*.json               5 份物品模型
+  textures/item/emerald_leggings.png       护腿（物品图标）
+  textures/item/emerald_boots.png          靴子（物品图标）
+  textures/models/armor/emerald_layer_1.png  头 / 胸 / 靴（穿在身上时的盔甲层）
+  textures/models/armor/emerald_layer_2.png  护腿（穿在身上时的盔甲层）
+  models/item/emerald_*.json               8 份物品模型
   data/minecraft/tags/items/*.json         把装备挂进原版标签（swords/axes/…）
   docs/emerald_gear_preview.png            物品图标 8 倍放大验收图（原版 | 绿宝石）
   docs/emerald_armor_layer_preview.png     盔甲层贴图 4 倍放大验收图（原版 | 绿宝石）
@@ -54,12 +58,18 @@ ITEMS = [
     ("diamond_axe", "emerald_axe"),
     ("diamond_pickaxe", "emerald_pickaxe"),
     ("diamond_shovel", "emerald_shovel"),
+    ("diamond_helmet", "emerald_helmet"),
     ("diamond_chestplate", "emerald_chestplate"),
+    ("diamond_leggings", "emerald_leggings"),
+    ("diamond_boots", "emerald_boots"),
 ]
 
-# 穿在身上的盔甲层（胸甲用 layer_1；只有护腿才用 layer_2）
-ARMOR_LAYER_SRC = "diamond_layer_1"
-ARMOR_LAYER_OUT = "emerald_layer_1"
+# 穿在身上的盔甲层：头盔 / 胸甲 / 靴子走 layer_1，护腿走 layer_2
+# （原版 HumanoidArmorLayer 就是按「腿 / 非腿」分两张图，护腿单独一张）
+ARMOR_LAYERS = [
+    ("diamond_layer_1", "emerald_layer_1"),
+    ("diamond_layer_2", "emerald_layer_2"),
+]
 
 # 原版物品标签**不会自动收模组物品**，必须显式把自己加进去。
 # 不加的后果：绿宝石工具不算「剑 / 斧 / 镐 / 铲」——
@@ -70,7 +80,8 @@ TAGS = {
     "axes": ["emerald_axe"],
     "pickaxes": ["emerald_pickaxe"],
     "shovels": ["emerald_shovel"],
-    "trimmable_armor": ["emerald_chestplate"],
+    "trimmable_armor": ["emerald_helmet", "emerald_chestplate",
+                        "emerald_leggings", "emerald_boots"],
 }
 
 TAG_DIR = os.path.join(ROOT, "src/main/resources/data/minecraft/tags/items")
@@ -189,18 +200,21 @@ def main():
     write_tags()
 
     # 盔甲层（穿在身上用），尺寸不是 16×16，单独一行、倍率调小
-    w, h, layer_src = G.png_read(io.BytesIO(z.read(VN_ARMOR % ARMOR_LAYER_SRC)))
-    layer_out, changed, opaque = tint(layer_src)
-    G.png_write(os.path.join(ARMOR_DIR, ARMOR_LAYER_OUT + ".png"), w, h, layer_out)
-    print("  %-20s %2d×%-2d  染色 %3d/%-3d -> textures/models/armor/%s.png"
-          % (ARMOR_LAYER_SRC, w, h, changed, opaque, ARMOR_LAYER_OUT))
+    armor_rows = []
+    for layer_src_name, layer_out_name in ARMOR_LAYERS:
+        w, h, layer_src = G.png_read(io.BytesIO(z.read(VN_ARMOR % layer_src_name)))
+        layer_out, changed, opaque = tint(layer_src)
+        G.png_write(os.path.join(ARMOR_DIR, layer_out_name + ".png"), w, h, layer_out)
+        print("  %-20s %2d×%-2d  染色 %3d/%-3d -> textures/models/armor/%s.png"
+              % (layer_src_name, w, h, changed, opaque, layer_out_name))
+        armor_rows.append((4, [(w, h, layer_src), (w, h, layer_out)]))
 
     # 两张验收图分开出：物品图标（8×）与盔甲层（4×）
     W, H, canvas = compose_rows(item_rows)
     G.png_write(os.path.join(DOCS, "emerald_gear_preview.png"), W, H, canvas)
     print("验收图（每行：左=原版钻石 右=绿宝石）-> docs/emerald_gear_preview.png  %d×%d" % (W, H))
 
-    W, H, canvas = compose_rows([(4, [(w, h, layer_src), (w, h, layer_out)])])
+    W, H, canvas = compose_rows(armor_rows)
     G.png_write(os.path.join(DOCS, "emerald_armor_layer_preview.png"), W, H, canvas)
     print("验收图（盔甲层：左=原版钻石 右=绿宝石）-> docs/emerald_armor_layer_preview.png  %d×%d"
           % (W, H))

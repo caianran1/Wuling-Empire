@@ -74,7 +74,9 @@ public final class ModArmorMaterials {
 
         @Override
         public SoundEvent getEquipSound() {
-            return SoundEvents.ARMOR_EQUIP_DIAMOND;
+            // 原版没有「绿宝石」装备音，2026-10-01 用户口径「绿宝石护甲不该是钻石的声音」，
+            // 改用原版里最厚重的金属装备声（下界合金），刚好也对得上绿宝石是最强境界。
+            return SoundEvents.ARMOR_EQUIP_NETHERITE;
         }
 
         @Override

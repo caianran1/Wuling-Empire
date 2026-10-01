@@ -61,10 +61,29 @@ public final class ModItems {
             ITEMS.register("emerald_shovel", () -> new ShovelItem(
                     ModTiers.EMERALD, 1.5F, -3.0F, new Item.Properties()));
 
-    /** 绿宝石胸甲（盔甲武灵只凝聚胸甲这一件，与其它境界一致） */
+    // 绿宝石护甲：**整套四件**（2026-10-01 用户口径「护甲是全套护甲不是胸甲」）。
+    // 盔甲武灵凝聚时一次给出头盔 / 胸甲 / 护腿 / 靴子，四件共用同一材质，
+    // 头部与胸甲、靴子走 emerald_layer_1 贴图，护腿走 emerald_layer_2。
+
+    /** 绿宝石头盔 */
+    public static final RegistryObject<Item> EMERALD_HELMET =
+            ITEMS.register("emerald_helmet", () -> new ArmorItem(
+                    ModArmorMaterials.EMERALD, ArmorItem.Type.HELMET, new Item.Properties()));
+
+    /** 绿宝石胸甲 */
     public static final RegistryObject<Item> EMERALD_CHESTPLATE =
             ITEMS.register("emerald_chestplate", () -> new ArmorItem(
                     ModArmorMaterials.EMERALD, ArmorItem.Type.CHESTPLATE, new Item.Properties()));
+
+    /** 绿宝石护腿 */
+    public static final RegistryObject<Item> EMERALD_LEGGINGS =
+            ITEMS.register("emerald_leggings", () -> new ArmorItem(
+                    ModArmorMaterials.EMERALD, ArmorItem.Type.LEGGINGS, new Item.Properties()));
+
+    /** 绿宝石靴子 */
+    public static final RegistryObject<Item> EMERALD_BOOTS =
+            ITEMS.register("emerald_boots", () -> new ArmorItem(
+                    ModArmorMaterials.EMERALD, ArmorItem.Type.BOOTS, new Item.Properties()));
 
     static {
         for (SpiritQuality quality : SpiritQuality.values()) {

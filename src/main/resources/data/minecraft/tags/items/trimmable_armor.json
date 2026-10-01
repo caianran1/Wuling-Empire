@@ -1,6 +1,9 @@
 {
   "replace": false,
   "values": [
-    "wulingdiguo:emerald_chestplate"
+    "wulingdiguo:emerald_helmet",
+    "wulingdiguo:emerald_chestplate",
+    "wulingdiguo:emerald_leggings",
+    "wulingdiguo:emerald_boots"
   ]
 }

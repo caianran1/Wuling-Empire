@@ -242,7 +242,13 @@ public final class WuLingBinding {
             }
 
             WuLingData data = holder.data();
-            ItemStack item = data.type().manifest(data.realmOrdinal(), data.stageOrdinal());
+            // 护甲武灵一次给整套四件（头 / 胸 / 腿 / 靴），其余种类只有一件。
+            java.util.List<ItemStack> items =
+                    data.type().manifest(data.realmOrdinal(), data.stageOrdinal());
+            boolean isSet = items.size() > 1;
+            Component setName = Component.translatable("wuling.manifest.name",
+                    Component.translatable(data.realm().translationKey()),
+                    Component.translatable(data.type().translationKey()));
 
             if (cost > 0.0F && spirit != null) {
                 spirit.addSpirit(-cost);
@@ -254,20 +260,28 @@ public final class WuLingBinding {
             double x = player.getX();
             double y = player.getY() + 1.0D;
             double z = player.getZ();
-            ItemEntity entity = new ItemEntity(player.level(), x, y, z, item);
-            entity.setPickUpDelay(0);
-            player.level().addFreshEntity(entity);
+            for (ItemStack item : items) {
+                ItemEntity entity = new ItemEntity(player.level(), x, y, z, item);
+                entity.setPickUpDelay(0);
+                player.level().addFreshEntity(entity);
+            }
 
             player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.PLAYER_LEVELUP, player.getSoundSource(), 0.8F, 1.2F);
             if (cost > 0.0F) {
-                player.sendSystemMessage(Component.translatable("message.wulingdiguo.condense_success",
-                        item.getHoverName(),
-                        trim(cost),
-                        trim(spirit == null ? 0.0F : spirit.getSpirit())));
+                player.sendSystemMessage(isSet
+                        ? Component.translatable("message.wulingdiguo.condense_success_set",
+                                setName, items.size(), trim(cost),
+                                trim(spirit == null ? 0.0F : spirit.getSpirit()))
+                        : Component.translatable("message.wulingdiguo.condense_success",
+                                items.get(0).getHoverName(), trim(cost),
+                                trim(spirit == null ? 0.0F : spirit.getSpirit())));
             } else {
-                player.sendSystemMessage(Component.translatable("message.wulingdiguo.condense_success_free",
-                        item.getHoverName()));
+                player.sendSystemMessage(isSet
+                        ? Component.translatable("message.wulingdiguo.condense_success_set_free",
+                                setName, items.size())
+                        : Component.translatable("message.wulingdiguo.condense_success_free",
+                                items.get(0).getHoverName()));
             }
         });
     }

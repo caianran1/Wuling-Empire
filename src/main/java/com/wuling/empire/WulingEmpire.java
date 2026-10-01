@@ -98,7 +98,11 @@ public class WulingEmpire {
         // 绿宝石武灵装备：正常途径靠「凝聚武灵」得到，这里放一份仅供创造模式试外观
         if (event.getTabKey() == CreativeModeTabs.COMBAT) {
             event.accept(new ItemStack(ModItems.EMERALD_SWORD.get()));
+            // 护甲是整套四件，按原版顺序 头 → 胸 → 腿 → 靴 摆
+            event.accept(new ItemStack(ModItems.EMERALD_HELMET.get()));
             event.accept(new ItemStack(ModItems.EMERALD_CHESTPLATE.get()));
+            event.accept(new ItemStack(ModItems.EMERALD_LEGGINGS.get()));
+            event.accept(new ItemStack(ModItems.EMERALD_BOOTS.get()));
         }
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(new ItemStack(ModItems.EMERALD_AXE.get()));
