@@ -3,6 +3,7 @@ package com.wuling.empire.network;
 import com.wuling.empire.Config;
 import com.wuling.empire.capability.ModCapabilities;
 import com.wuling.empire.wuling.BreakthroughRequirement;
+import com.wuling.empire.wuling.WuLingBinding;
 import com.wuling.empire.wuling.WuLingRealm;
 import com.wuling.empire.wuling.WuLingStage;
 import net.minecraft.network.FriendlyByteBuf;
@@ -84,6 +85,14 @@ public class WuLingBreakthroughPacket {
             }
 
             data.advanceRealm();
+
+            // 背包里的武灵实物跟着升一档（2026-10-01 用户口径：
+            // 「每一级升级时手上的武灵物品也会一同升级」）
+            int upgraded = WuLingBinding.refreshManifestItems(player);
+            if (upgraded > 0) {
+                player.sendSystemMessage(Component.translatable(
+                        "message.wulingdiguo.manifest_upgraded", upgraded));
+            }
 
             // 突破不消耗灵力；只有明确开启时才清空
             if (Config.BREAKTHROUGH_CONSUMES_SPIRIT.get()) {

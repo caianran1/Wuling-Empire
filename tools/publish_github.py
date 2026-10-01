@@ -44,6 +44,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OWNER = 'caianran1'
 REPO = 'Wuling-Empire'
 BRANCH = 'main'
@@ -171,11 +172,17 @@ def remote_tree(sha):
 
 
 def local_files():
-    """所有「应存在于仓库」的文件 → {path: git_mode}（已应用 .gitignore）"""
+    """所有「应存在于仓库」的文件 → {path: git_mode}（已应用 .gitignore）
+
+    ⚠️ 必须过滤掉「索引里还在、磁盘上已删」的文件：它们仍会被 `git ls-files -s`
+    列出来，但随后 `git hash-object` 会因文件不存在而失败
+    （表现为 `fatal: could not open 'xxx' for reading`）。
+    跳过之后，这类文件自然落进 `set(rtree) - local_set`，被当成「删除」提交上去。
+    """
     modes = {}
     for line in git('ls-files', '-s').splitlines():
         parts = line.split(None, 3)
-        if len(parts) == 4:
+        if len(parts) == 4 and os.path.exists(os.path.join(ROOT, parts[3])):
             modes[parts[3]] = parts[0]
     for p in git('ls-files', '--others', '--exclude-standard').splitlines():
         if p.strip():

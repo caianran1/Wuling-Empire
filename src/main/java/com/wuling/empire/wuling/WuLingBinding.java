@@ -3,6 +3,7 @@ package com.wuling.empire.wuling;
 import com.wuling.empire.Config;
 import com.wuling.empire.capability.ISpiritPower;
 import com.wuling.empire.capability.ModCapabilities;
+import com.wuling.empire.item.ManifestItems;
 import com.wuling.empire.item.ModItems;
 import com.wuling.empire.item.SpiritBeadItem;
 import com.wuling.empire.item.SpiritQuality;
@@ -16,6 +17,7 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -284,6 +286,61 @@ public final class WuLingBinding {
                                 items.get(0).getHoverName()));
             }
         });
+    }
+
+    /**
+     * 境界提升后，把背包里所有凝聚出的武灵实物<b>换成新境界的同款</b>。
+     *
+     * <p>2026-10-01 用户口径：「每一级升级时手上的武灵物品也会一同升级」。
+     * 判定靠物品上的 {@code WuLingManifest} 标记 —— 只有本模组凝聚出来的东西会被换，
+     * 玩家自己做的原版木剑不受影响。
+     *
+     * <p>已经是对应境界那件的会直接跳过，所以小境界晋升时调用也不会有副作用
+     * （不会靠升级白刷耐久）。
+     *
+     * @return 换掉的件数
+     */
+    public static int refreshManifestItems(Player player) {
+        var holder = player.getCapability(ModCapabilities.WU_LING).orElse(null);
+        if (holder == null || !holder.data().isBound()) {
+            return 0;
+        }
+        WuLingData data = holder.data();
+        Container inventory = player.getInventory();
+        int changed = 0;
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            ItemStack old = inventory.getItem(i);
+            WuLingType type = ManifestItems.manifestType(old);
+            if (type == null) {
+                continue;
+            }
+            ArmorItem.Type armorType = armorTypeOf(old);
+            if (old.is(currentItem(data.realm(), type, armorType))) {
+                continue;
+            }
+            ItemStack fresh = type.manifestPiece(data.realmOrdinal(), data.stageOrdinal(),
+                    armorType == null ? -1 : ManifestItems.armorIndex(armorType));
+            if (fresh.isEmpty()) {
+                continue;
+            }
+            inventory.setItem(i, fresh);
+            changed++;
+        }
+        return changed;
+    }
+
+    /** 当前境界下，这种武灵的实物是哪一件（护甲要分部位） */
+    private static net.minecraft.world.item.Item currentItem(WuLingRealm realm, WuLingType type,
+                                                             ArmorItem.Type armorType) {
+        if (type == WuLingType.ARMOR && armorType != null) {
+            return ManifestItems.armor(realm, armorType);
+        }
+        return ManifestItems.single(realm, type);
+    }
+
+    /** 这件物品是护甲的话，取它的部位；不是则 null */
+    private static ArmorItem.Type armorTypeOf(ItemStack stack) {
+        return stack.getItem() instanceof ArmorItem armor ? armor.getType() : null;
     }
 
     /** 3.0 → "3"，7.5 → "7.5" */

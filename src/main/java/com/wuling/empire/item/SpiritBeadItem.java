@@ -140,8 +140,9 @@ public class SpiritBeadItem extends Item {
 
         float max = Config.maxSpirit();
         if (power.getSpirit() >= max - 0.001F) {
-            player.sendSystemMessage(Component.translatable("message.wulingdiguo.spirit_full"));
-            return InteractionResultHolder.fail(held);
+            // 2026-10-01 用户口径：灵力满时吸收灵珠改为「小幅度增加修为」，
+            // 不再直接拒绝（免得珠子白费）
+            return absorbIntoProgress(level, player, held);
         }
 
         float restore = BeadPower.restore(getSource(held), quality);
@@ -161,6 +162,53 @@ public class SpiritBeadItem extends Item {
                 String.format("%.1f", before),
                 String.format("%.1f", power.getSpirit())));
 
+        return InteractionResultHolder.success(held);
+    }
+
+    /**
+     * 灵力已满时的吸收：不涨灵力，改成累积<b>少量修炼进度</b>。
+     *
+     * <p>2026-10-01 用户口径「在灵力满时吸收灵珠可小幅度增加修为」。
+     * 进度量 = {@code Config.BEAD_FULL_PROGRESS} × 该灵珠品质的修炼倍率
+     * （品质越高越划算），乘倍率的那一下在 {@code WuLingData#addProgress} 里做。
+     *
+     * <p>只有<b>已开启武灵</b>的玩家才换得到修为；没开武灵的人吸满灵力的珠子
+     * 依然会被拒绝（免得白费珠子）。这条路对任何武灵种类都算数 ——
+     * 不走 {@code IWuLing#addProgress} 的「动作匹配」判定，因为吸珠不分种类。
+     */
+    private InteractionResultHolder<ItemStack> absorbIntoProgress(Level level, Player player,
+                                                                  ItemStack held) {
+        var holder = player.getCapability(ModCapabilities.WU_LING).orElse(null);
+        double gain = Config.BEAD_FULL_PROGRESS.get();
+        if (holder == null || !holder.data().isBound() || gain <= 0.0D) {
+            player.sendSystemMessage(Component.translatable("message.wulingdiguo.spirit_full"));
+            return InteractionResultHolder.fail(held);
+        }
+
+        var data = holder.data();
+        boolean promoted = data.addProgress(gain);
+
+        Component beadName = held.getHoverName();
+        held.shrink(1);
+
+        level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.EXPERIENCE_ORB_PICKUP, player.getSoundSource(), 0.6F, 1.0F);
+        player.gameEvent(GameEvent.ITEM_INTERACT_FINISH);
+
+        player.sendSystemMessage(Component.translatable(
+                "message.wulingdiguo.bead_full_cultivation",
+                beadName, trim(gain * data.cultivationBonus())));
+
+        if (promoted) {
+            player.sendSystemMessage(Component.translatable("message.wulingdiguo.stage_up",
+                    Component.translatable(data.realm().translationKey())
+                            .append(" · ")
+                            .append(Component.translatable(data.stage().translationKey()))));
+            com.wuling.empire.wuling.WuLingBinding.refreshManifestItems(player);
+        }
+        if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            com.wuling.empire.network.ModMessages.sendWuLingTo(serverPlayer);
+        }
         return InteractionResultHolder.success(held);
     }
 

@@ -3,7 +3,7 @@ package com.wuling.empire.wuling;
 import com.google.common.collect.Multimap;
 import com.wuling.empire.Config;
 import com.wuling.empire.WulingEmpire;
-import com.wuling.empire.item.ModItems;
+import com.wuling.empire.item.ManifestItems;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -235,13 +235,12 @@ public enum WuLingType {
 
     /**
      * 凝聚出实体武灵：按当前境界返回对应的实物（**可能不止一件**）。
-     * 工具/武器类按境界取对应材质档次（木→石→铁→金→钻石→下界合金），
-     * 例如钻石境界的剑武灵 → 钻石剑。
-     * 水/火/红石/书等抽象类则化为其主题物品。
      *
-     * <b>例外：绿宝石境界的装备全是单独设计的一档实物</b> ——
-     * 外观 = 原版钻石同款 + 绿色滤镜，数值 = 绿宝石材质（<b>数倍于钻石</b>），
-     * 见 {@link ModItems#EMERALD_SWORD} 等；其余境界仍走 {@link #mapTier}。
+     * <p>实物取自 {@link ManifestItems} —— <b>每个大境界 × 每种武灵一件独立物品</b>
+     * （{@code wulingdiguo:wood_sword} … {@code wulingdiguo:emerald_boots}），
+     * 所以境界一升，拿到的是<b>另一件物品</b>，而不是同一件改名字。
+     * 绿宝石档外观是单独设计的一档（钻石同款 + 绿色滤镜，数值数倍于钻石），
+     * 低境界则与原版同材质同参数，靠 {@link #empower} 的属性追加拉出境界差距。
      *
      * <b>护甲武灵一次给整套四件</b>（头盔 / 胸甲 / 护腿 / 靴子）——
      * 2026-10-01 用户口径「护甲是全套护甲不是胸甲」；其余种类仍是一件。
@@ -249,162 +248,120 @@ public enum WuLingType {
      * @return 至少一件；调用方应逐件生成实体
      */
     public java.util.List<ItemStack> manifest(int realmOrdinal, int stageOrdinal) {
-        WuLingRealm realm = WuLingRealm.byOrdinal(realmOrdinal);
         if (this == ARMOR) {
-            return manifestArmorSet(realm);
+            java.util.List<ItemStack> out = new java.util.ArrayList<>(4);
+            for (int i = 0; i < ManifestItems.ARMOR_PART_KEYS.length; i++) {
+                out.add(manifestPiece(realmOrdinal, stageOrdinal, i));
+            }
+            return out;
         }
-        return java.util.List.of(finish(singleManifest(realm, realmOrdinal), realm, null));
+        return java.util.List.of(manifestPiece(realmOrdinal, stageOrdinal, -1));
     }
 
     /**
-     * 护甲武灵：一次给<b>整套四件</b>。
+     * 凝聚出<b>单件</b>实物 —— 境界升级时用它替换背包里的旧武灵物品，
+     * 也是 {@link #manifest} 的基础。
      *
-     * 绿宝石境界四件都是 {@link ModItems} 里单独注册的实物，带同样的附魔；
-     * 其余境界按 {@link #mapTier} 取原版同材质的四件，与工具类共用同一套质感阶梯。
+     * <p>物品来自 {@link ManifestItems}（每个境界 × 每种武灵一件独立物品），
+     * 因此不同境界得到的是<b>不同的物品</b>，而不是同一件改了名字。
+     *
+     * @param armorPart 护甲部位 0 头 / 1 胸 / 2 腿 / 3 靴；非护甲传 -1
      */
-    private java.util.List<ItemStack> manifestArmorSet(WuLingRealm realm) {
-        boolean emerald = realm == WuLingRealm.EMERALD;
-        ItemStack[] pieces;
-        if (emerald) {
-            pieces = new ItemStack[]{
-                    new ItemStack(ModItems.EMERALD_HELMET.get()),
-                    new ItemStack(ModItems.EMERALD_CHESTPLATE.get()),
-                    new ItemStack(ModItems.EMERALD_LEGGINGS.get()),
-                    new ItemStack(ModItems.EMERALD_BOOTS.get())};
+    public ItemStack manifestPiece(int realmOrdinal, int stageOrdinal, int armorPart) {
+        WuLingRealm realm = WuLingRealm.byOrdinal(realmOrdinal);
+        ItemStack stack;
+        String partKey = null;
+        if (this == ARMOR) {
+            int index = Math.max(0, Math.min(ManifestItems.ARMOR_PART_KEYS.length - 1, armorPart));
+            stack = new ItemStack(ManifestItems.armor(realm, ManifestItems.armorTypeOf(index)));
+            partKey = ManifestItems.ARMOR_PART_KEYS[index];
         } else {
-            pieces = new ItemStack[]{
-                    new ItemStack(mapTier(realm, Items.LEATHER_HELMET, Items.CHAINMAIL_HELMET,
-                            Items.IRON_HELMET, Items.GOLDEN_HELMET, Items.DIAMOND_HELMET,
-                            Items.NETHERITE_HELMET)),
-                    new ItemStack(mapTier(realm, Items.LEATHER_CHESTPLATE, Items.CHAINMAIL_CHESTPLATE,
-                            Items.IRON_CHESTPLATE, Items.GOLDEN_CHESTPLATE, Items.DIAMOND_CHESTPLATE,
-                            Items.NETHERITE_CHESTPLATE)),
-                    new ItemStack(mapTier(realm, Items.LEATHER_LEGGINGS, Items.CHAINMAIL_LEGGINGS,
-                            Items.IRON_LEGGINGS, Items.GOLDEN_LEGGINGS, Items.DIAMOND_LEGGINGS,
-                            Items.NETHERITE_LEGGINGS)),
-                    new ItemStack(mapTier(realm, Items.LEATHER_BOOTS, Items.CHAINMAIL_BOOTS,
-                            Items.IRON_BOOTS, Items.GOLDEN_BOOTS, Items.DIAMOND_BOOTS,
-                            Items.NETHERITE_BOOTS))};
+            stack = new ItemStack(ManifestItems.single(realm, this));
         }
-
-        // 顺序与上面的 pieces 一一对应：头盔 / 胸甲 / 护腿 / 靴子
-        String[] partKeys = {"wuling.armor.helmet", "wuling.armor.chestplate",
-                "wuling.armor.leggings", "wuling.armor.boots"};
-        java.util.List<ItemStack> out = new java.util.ArrayList<>(pieces.length);
-        for (int i = 0; i < pieces.length; i++) {
-            ItemStack piece = pieces[i];
-            if (emerald) {
-                piece.enchant(Enchantments.ALL_DAMAGE_PROTECTION, 4);
-                piece.enchant(Enchantments.THORNS, 3);
-                piece.enchant(Enchantments.UNBREAKING, 3);
-            }
-            out.add(finish(piece, realm, partKeys[i]));
-        }
-        return out;
+        applyManifestEnchants(stack, realm, realmOrdinal);
+        // 打标记：升级时靠它认出「哪些是凝聚出的武灵实物」
+        ManifestItems.markManifest(stack, this);
+        finish(stack, realm, partKey);
+        return stack;
     }
 
-    /** 单件实物（护甲除外 —— 护甲走 {@link #manifestArmorSet}） */
-    private ItemStack singleManifest(WuLingRealm realm, int realmOrdinal) {
+    /**
+     * 凝聚物自带的附魔。
+     *
+     * <ul>
+     *   <li><b>绿宝石境界</b>：每一件都是「满配」（剑锋利 V / 火 II / 抢夺 III / 横扫 III，
+     *       镐时运 III，护甲保护 IV + 荆棘 III，弓无限 I）。</li>
+     *   <li><b>低境界工具</b>：按境界递增给效率附魔 —— 挖掘速度在原版不是属性修饰符
+     *       （只有 {@code Tier#getSpeed}），想让低境界工具也强于原版同款只能靠附魔。</li>
+     *   <li>低境界的剑 / 护甲不给附魔，强度全靠 {@link #empower} 的属性追加。</li>
+     * </ul>
+     */
+    private void applyManifestEnchants(ItemStack stack, WuLingRealm realm, int realmOrdinal) {
         boolean emerald = realm == WuLingRealm.EMERALD;
         switch (this) {
-            case SWORD: {
-                ItemStack stack;
+            case SWORD -> {
                 if (emerald) {
-                    stack = new ItemStack(ModItems.EMERALD_SWORD.get());
                     stack.enchant(Enchantments.SHARPNESS, 5);
                     stack.enchant(Enchantments.FIRE_ASPECT, 2);
                     stack.enchant(Enchantments.MOB_LOOTING, 3);
                     stack.enchant(Enchantments.SWEEPING_EDGE, 3);
                     stack.enchant(Enchantments.UNBREAKING, 3);
-                } else {
-                    stack = new ItemStack(mapTier(realm, Items.WOODEN_SWORD, Items.STONE_SWORD,
-                            Items.IRON_SWORD, Items.GOLDEN_SWORD, Items.DIAMOND_SWORD, Items.NETHERITE_SWORD));
                 }
-                return stack;
             }
-            case AXE: {
-                ItemStack stack;
+            case AXE -> {
                 if (emerald) {
-                    stack = new ItemStack(ModItems.EMERALD_AXE.get());
                     stack.enchant(Enchantments.SHARPNESS, 5);
                     stack.enchant(Enchantments.BLOCK_EFFICIENCY, 5);
                     stack.enchant(Enchantments.UNBREAKING, 3);
                 } else {
-                    stack = new ItemStack(mapTier(realm, Items.WOODEN_AXE, Items.STONE_AXE,
-                            Items.IRON_AXE, Items.GOLDEN_AXE, Items.DIAMOND_AXE, Items.NETHERITE_AXE));
-                    // 挖掘速度在原版不是属性修饰符（只有 Tier#getSpeed），
-                    // 想让低境界工具也强于原版同款，只能靠按境界递增的效率附魔。
                     stack.enchant(Enchantments.BLOCK_EFFICIENCY, Math.min(realmOrdinal + 1, 5));
                 }
-                return stack;
             }
-            case PICKAXE: {
-                ItemStack stack;
+            case PICKAXE -> {
                 if (emerald) {
-                    stack = new ItemStack(ModItems.EMERALD_PICKAXE.get());
                     stack.enchant(Enchantments.BLOCK_EFFICIENCY, 5);
                     stack.enchant(Enchantments.BLOCK_FORTUNE, 3);
                     stack.enchant(Enchantments.UNBREAKING, 3);
                 } else {
-                    stack = new ItemStack(mapTier(realm, Items.WOODEN_PICKAXE, Items.STONE_PICKAXE,
-                            Items.IRON_PICKAXE, Items.GOLDEN_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE));
                     stack.enchant(Enchantments.BLOCK_EFFICIENCY, Math.min(realmOrdinal + 1, 5));
                 }
-                return stack;
             }
-            case SHOVEL: {
-                ItemStack stack;
+            case SHOVEL -> {
                 if (emerald) {
-                    stack = new ItemStack(ModItems.EMERALD_SHOVEL.get());
                     stack.enchant(Enchantments.BLOCK_EFFICIENCY, 5);
                     stack.enchant(Enchantments.UNBREAKING, 3);
                 } else {
-                    stack = new ItemStack(mapTier(realm, Items.WOODEN_SHOVEL, Items.STONE_SHOVEL,
-                            Items.IRON_SHOVEL, Items.GOLDEN_SHOVEL, Items.DIAMOND_SHOVEL, Items.NETHERITE_SHOVEL));
                     stack.enchant(Enchantments.BLOCK_EFFICIENCY, Math.min(realmOrdinal + 1, 5));
                 }
-                return stack;
             }
-            case BOW: {
-                ItemStack stack = new ItemStack(Items.BOW);
+            case ARMOR -> {
+                if (emerald) {
+                    stack.enchant(Enchantments.ALL_DAMAGE_PROTECTION, 4);
+                    stack.enchant(Enchantments.THORNS, 3);
+                    stack.enchant(Enchantments.UNBREAKING, 3);
+                }
+            }
+            case BOW -> {
                 stack.enchant(Enchantments.POWER_ARROWS, Math.min(realmOrdinal + 1, 5));
                 if (emerald) {
                     stack.enchant(Enchantments.INFINITY_ARROWS, 1);
                 }
-                return stack;
             }
-            case WATER:
-                return new ItemStack(Items.WATER_BUCKET);
-            case FIRE:
-                return new ItemStack(Items.BLAZE_ROD);
-            case REDSTONE:
-                return new ItemStack(Items.REDSTONE);
-            case BOOK: {
-                ItemStack stack = new ItemStack(Items.ENCHANTED_BOOK);
-                stack.enchant(Enchantments.UNBREAKING, Math.min(realmOrdinal + 1, 3));
-                return stack;
+            case BOOK -> stack.enchant(Enchantments.UNBREAKING, Math.min(realmOrdinal + 1, 3));
+            default -> {
             }
-            case ARMOR:
-            default:
-                return new ItemStack(Items.STICK);
         }
     }
 
     /**
-     * 统一收尾：命名 + 按境界强化。
+     * 统一收尾：按境界强化。
      *
-     * @param partKey 护甲部位的翻译键（头盔 / 胸甲 / 护腿 / 靴子）；非护甲传 null，
-     *                这样四件同名护甲在物品栏里也能一眼分清部位
+     * <p>不写 {@code setHoverName} —— 显示名由物品本身的 {@code getName} 给出
+     * （见 {@link ManifestItems}），这样名字不会带原版「自定义名」的斜体样式。
+     *
+     * @param partKey 护甲部位的翻译键，保留给将来需要单独处理时用
      */
     private ItemStack finish(ItemStack stack, WuLingRealm realm, String partKey) {
-        Component name = Component.translatable("wuling.manifest.name",
-                Component.translatable(realm.translationKey()),
-                Component.translatable(translationKey()));
-        if (partKey != null) {
-            name = Component.translatable("wuling.manifest.armor_piece", name,
-                    Component.translatable(partKey));
-        }
-        stack.setHoverName(name);
         empower(stack, realm, realm.manifestMultiplier());
         return stack;
     }
@@ -507,21 +464,4 @@ public enum WuLingType {
                 : String.format("%.1f", value);
     }
 
-    /**
-     * 将境界映射到对应材质档次的物品。
-     * 绿宝石档现在都走 {@link ModItems} 里单独注册的实物了，
-     * 这里保留 EMERALD → 下界合金 只是兜底。
-     */
-    private static Item mapTier(WuLingRealm realm, Item wood, Item stone, Item iron,
-                                Item gold, Item diamond, Item netherite) {
-        return switch (realm) {
-            case WOOD -> wood;
-            case STONE -> stone;
-            case METEOR_IRON -> iron;
-            case GOLD -> gold;
-            case DIAMOND -> diamond;
-            case NETHERITE, EMERALD -> netherite;
-            default -> netherite;
-        };
-    }
 }

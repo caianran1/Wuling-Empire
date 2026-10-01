@@ -39,6 +39,15 @@ public final class Config {
     public static final ForgeConfigSpec.DoubleValue MAX_SPIRIT;
     public static final ForgeConfigSpec.DoubleValue REGEN_PER_MINUTE;
 
+    /**
+     * 灵力已满时，仍然吸收灵珠能换到的<b>少量修炼进度</b>（2026-10-01 用户口径
+     * 「在灵力满时吸收灵珠可小幅度增加修为」）。
+     *
+     * <p>真正累加的进度 = 该值 × 灵珠品质的修炼倍率，所以极品珠比凡品珠划算。
+     * 设为 0 即关闭（回到「灵力满时吸收只会提示灵力已满」的老行为）。
+     */
+    public static final ForgeConfigSpec.DoubleValue BEAD_FULL_PROGRESS;
+
     // ===================== 灵珠回复量：品质倍率 =====================
     // 最终回复量 = 怪物基准（item/BeadPower 的 BASE 表）× 这里的品质倍率
     public static final ForgeConfigSpec.DoubleValue RESTORE_MULT_FAN;
@@ -145,6 +154,10 @@ public final class Config {
 
         REGEN_PER_MINUTE = BUILDER.comment("灵力自然回复速度：每分钟回复百分比")
                 .defineInRange("regenPerMinute", 1.0D, 0.0D, 100.0D);
+
+        BEAD_FULL_PROGRESS = BUILDER.comment("灵力已满时吸收灵珠得到的少量修炼进度；",
+                        "实际累加 = 该值 × 灵珠品质的修炼倍率。0 = 关闭。")
+                .defineInRange("beadFullProgress", 3.0D, 0.0D, 10000.0D);
 
         BUILDER.pop();
 

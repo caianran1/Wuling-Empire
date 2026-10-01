@@ -1,7 +1,7 @@
 package com.wuling.empire.wuling;
 
 import com.wuling.empire.Config;
-import com.wuling.empire.item.ModItems;
+import com.wuling.empire.item.ManifestItems;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -15,7 +15,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -30,7 +29,7 @@ import java.util.UUID;
  * <p>落地方式刻意做得「看得见」：
  * <ul>
  *   <li>等级写进怪物主手 —— 木阶拿木剑、钻石阶拿钻石剑、绿宝石阶直接拿
- *       {@link ModItems#EMERALD_SWORD 绿宝石剑}。玩家一眼就能看出对面是什么阶。</li>
+ *       {@link ManifestItems 武灵剑}（绿宝石阶那把一眼就是绿的）。玩家一眼就能看出对面是什么阶。</li>
  *   <li>近战伤害随之提高：装备的 {@code ATTACK_DAMAGE} 修饰符由原版
  *       {@code LivingEntity#handleEquipmentChanges} 自动挂上，不必自己写伤害逻辑。</li>
  *   <li>剑的掉落率钉成 0：绿宝石阶极其稀有（默认约万分之一），若还能掉出绿宝石剑
@@ -139,19 +138,14 @@ public final class MonsterTier {
     }
 
     /**
-     * 「本属性的剑」：境界 → 对应材质的剑。
-     * 绿宝石档走本模组单独设计的 {@link ModItems#EMERALD_SWORD}（不是下界合金换皮）。
+     * 「本属性的剑」：境界 → 对应那件武灵剑。
+     *
+     * 2026-10-01 起所有境界的武灵实物都是 {@link ManifestItems} 里独立注册的物品
+     * （{@code wulingdiguo:wood_sword} … {@code emerald_sword}），所以这里直接查表，
+     * 不再区分「原版剑 / 本模组剑」。
      */
     public static Item swordOf(WuLingRealm realm) {
-        return switch (realm) {
-            case WOOD -> Items.WOODEN_SWORD;
-            case STONE -> Items.STONE_SWORD;
-            case GOLD -> Items.GOLDEN_SWORD;
-            case METEOR_IRON -> Items.IRON_SWORD;
-            case DIAMOND -> Items.DIAMOND_SWORD;
-            case NETHERITE -> Items.NETHERITE_SWORD;
-            case EMERALD -> ModItems.EMERALD_SWORD.get();
-        };
+        return ManifestItems.single(realm, WuLingType.SWORD);
     }
 
     // ===================== 应用 =====================

@@ -4,11 +4,15 @@ import com.mojang.logging.LogUtils;
 import com.wuling.empire.capability.ModCapabilities;
 import com.wuling.empire.entity.ModEntities;
 import com.wuling.empire.events.ModEvents;
+import com.wuling.empire.item.ManifestItems;
 import com.wuling.empire.item.ModItems;
 import com.wuling.empire.item.SpiritQuality;
 import com.wuling.empire.network.ModMessages;
+import com.wuling.empire.wuling.WuLingRealm;
+import com.wuling.empire.wuling.WuLingType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
@@ -49,6 +53,8 @@ public class WulingEmpire {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         ModItems.ITEMS.register(modBus);
+        // 武灵凝聚物（每个境界各一套，共 91 件）单独一个 DeferredRegister
+        ManifestItems.ITEMS.register(modBus);
         ModEntities.ENTITY_TYPES.register(modBus);
 
         // 能力（Capability）注册：必须在值被获取之前完成
@@ -97,17 +103,17 @@ public class WulingEmpire {
         }
         // 绿宝石武灵装备：正常途径靠「凝聚武灵」得到，这里放一份仅供创造模式试外观
         if (event.getTabKey() == CreativeModeTabs.COMBAT) {
-            event.accept(new ItemStack(ModItems.EMERALD_SWORD.get()));
+            event.accept(new ItemStack(ManifestItems.single(WuLingRealm.EMERALD, WuLingType.SWORD)));
             // 护甲是整套四件，按原版顺序 头 → 胸 → 腿 → 靴 摆
-            event.accept(new ItemStack(ModItems.EMERALD_HELMET.get()));
-            event.accept(new ItemStack(ModItems.EMERALD_CHESTPLATE.get()));
-            event.accept(new ItemStack(ModItems.EMERALD_LEGGINGS.get()));
-            event.accept(new ItemStack(ModItems.EMERALD_BOOTS.get()));
+            event.accept(new ItemStack(ManifestItems.armor(WuLingRealm.EMERALD, ArmorItem.Type.HELMET)));
+            event.accept(new ItemStack(ManifestItems.armor(WuLingRealm.EMERALD, ArmorItem.Type.CHESTPLATE)));
+            event.accept(new ItemStack(ManifestItems.armor(WuLingRealm.EMERALD, ArmorItem.Type.LEGGINGS)));
+            event.accept(new ItemStack(ManifestItems.armor(WuLingRealm.EMERALD, ArmorItem.Type.BOOTS)));
         }
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(new ItemStack(ModItems.EMERALD_AXE.get()));
-            event.accept(new ItemStack(ModItems.EMERALD_PICKAXE.get()));
-            event.accept(new ItemStack(ModItems.EMERALD_SHOVEL.get()));
+            event.accept(new ItemStack(ManifestItems.single(WuLingRealm.EMERALD, WuLingType.AXE)));
+            event.accept(new ItemStack(ManifestItems.single(WuLingRealm.EMERALD, WuLingType.PICKAXE)));
+            event.accept(new ItemStack(ManifestItems.single(WuLingRealm.EMERALD, WuLingType.SHOVEL)));
         }
     }
 

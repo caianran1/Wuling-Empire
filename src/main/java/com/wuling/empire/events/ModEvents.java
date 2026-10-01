@@ -135,6 +135,9 @@ public class ModEvents {
             if (promoted && player instanceof ServerPlayer serverPlayer) {
                 player.sendSystemMessage(Component.translatable("message.wulingdiguo.stage_up",
                         ClientSafe.realmLabel(wuLing.data())));
+                // 小境界不改实物档次，但每次升级都顺手同步一遍 ——
+                // 若手上已是当前境界那件就什么都不做（见 WuLingBinding#refreshManifestItems）
+                WuLingBinding.refreshManifestItems(player);
                 ModMessages.sendWuLingTo(serverPlayer);
             }
         });
