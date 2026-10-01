@@ -29,8 +29,8 @@ WuLing Empire — GitHub 发布工具（走 REST API，不依赖 git push）
     * 二进制安全：blob 以 base64 提交，jar/png 不会被破坏。
     * 忽略规则交给 git（ls-files --others --exclude-standard），
       所以 .gitignore 里的 build/、_env/、.workbuddy/ 天然不会被上传。
-    * 所有请求自动重试瞬时错误（代理 502 / HTTP 5xx / 429）；资产上传还会在
-      uploads.github.com 失败时自动切到 api.github.com。
+    * 所有请求自动重试瞬时错误（代理 502 / HTTP 5xx / 429）；资产上传只在
+      `uploads.github.com` 上重试（最多 8 次）—— 换 api.github.com 会 404。
 """
 
 import base64

@@ -6,7 +6,7 @@ Java 17
 
 【发布产物命名】
 构建出来的 jar 统一叫  Wuling-Empire-v<版本号>.jar
-    例：Wuling-Empire-v0.3.1.jar
+    例：Wuling-Empire-v0.3.2.jar
 后缀 -test 表示测试版，正式版不带后缀。
 mod_id 仍然是 wulingdiguo，游戏 Mod 列表里显示的名字是 WuLing Empire / 武灵帝国。
 
