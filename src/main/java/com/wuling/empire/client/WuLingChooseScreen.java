@@ -18,8 +18,9 @@ import net.minecraft.network.chat.Component;
  */
 public class WuLingChooseScreen extends Screen {
 
-    private static final int PANEL_WIDTH = 210;
-    private static final int PANEL_HEIGHT = 168;
+    private static final int PANEL_WIDTH = 260;
+    // 11 种武灵 × 2 列 = 6 行，比 10 种时多一行 —— 面板跟着加高，否则会压到底部提示
+    private static final int PANEL_HEIGHT = 192;
     private static final int COLS = 2;
 
     /** 是否以「创造模式」打开：选中后强制覆盖当前武灵（无视已拥有） */

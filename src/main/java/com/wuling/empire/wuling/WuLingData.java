@@ -29,6 +29,8 @@ public class WuLingData {
     private static final String KEY_CULTIVATION = "CultivationBonus";
     private static final String KEY_SUBMIT = "Submit";
     private static final String KEY_SUBMIT_TARGET = "SubmitTarget";
+    /** 腐肉武灵的突破货币：累计击杀僵尸数 */
+    private static final String KEY_ZOMBIE_KILLS = "ZombieKills";
 
     private boolean bound = false;
     private String typeKey = WuLingType.SWORD.key();
@@ -52,6 +54,15 @@ public class WuLingData {
     private CompoundTag submitted = new CompoundTag();
     /** 缴纳池对应的目标大境界序号；与当前目标不一致时说明配置变了或已突破，需要退还重来 */
     private int submitTarget = -1;
+
+    /**
+     * 腐肉武灵的「累计击杀僵尸数」。
+     *
+     * <p>它同时是<b>突破的唯一货币</b> —— 其他武灵交物资，腐肉武灵只认这个数
+     * （用户 2026-10-02 口径：「升级不消耗材料，只消耗击杀僵尸的量」）。
+     * 击杀数只增不减，突破时扣除对应档位的数量。
+     */
+    private int zombieKills = 0;
 
     // ===================== 查询 =====================
 
@@ -149,6 +160,8 @@ public class WuLingData {
         this.stageOrdinal = 0;
         this.progress = 0.0D;
         this.cultivationBonus = Math.max(0.0D, cultivationBonus);
+        // 换武灵 = 重头再来，击杀数不跟着走
+        this.zombieKills = 0;
     }
 
     public void unbind() {
@@ -156,6 +169,7 @@ public class WuLingData {
         this.progress = 0.0D;
         this.realmOrdinal = 0;
         this.stageOrdinal = 0;
+        this.zombieKills = 0;
         clearSubmitted();
     }
 
@@ -198,6 +212,36 @@ public class WuLingData {
 
     public void setSubmitTarget(int target) {
         this.submitTarget = target;
+    }
+
+    // ===================== 腐肉武灵：击杀僵尸数 =====================
+
+    /** 累计击杀的僵尸数（突破用） */
+    public int zombieKills() {
+        return zombieKills;
+    }
+
+    /** 记一次僵尸击杀；只对腐肉武灵有意义，但累加本身对所有武灵无害 */
+    public void addZombieKills(int amount) {
+        if (amount > 0) {
+            this.zombieKills += amount;
+        }
+    }
+
+    /**
+     * 扣掉突破消耗的击杀数。
+     *
+     * @return true = 数量足够并已扣除；false = 不够，什么都没动
+     */
+    public boolean consumeZombieKills(int amount) {
+        if (amount <= 0) {
+            return true;
+        }
+        if (this.zombieKills < amount) {
+            return false;
+        }
+        this.zombieKills -= amount;
+        return true;
     }
 
     // ===================== 修炼进度 =====================
@@ -270,6 +314,7 @@ public class WuLingData {
         tag.putDouble(KEY_CULTIVATION, cultivationBonus);
         tag.put(KEY_SUBMIT, submitted);
         tag.putInt(KEY_SUBMIT_TARGET, submitTarget);
+        tag.putInt(KEY_ZOMBIE_KILLS, zombieKills);
         return tag;
     }
 
@@ -288,5 +333,6 @@ public class WuLingData {
         this.cultivationBonus = tag.contains(KEY_CULTIVATION) ? tag.getDouble(KEY_CULTIVATION) : 1.0D;
         this.submitted = tag.contains(KEY_SUBMIT) ? tag.getCompound(KEY_SUBMIT) : new CompoundTag();
         this.submitTarget = tag.contains(KEY_SUBMIT_TARGET) ? tag.getInt(KEY_SUBMIT_TARGET) : -1;
+        this.zombieKills = Math.max(0, tag.getInt(KEY_ZOMBIE_KILLS));
     }
 }

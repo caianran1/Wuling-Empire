@@ -71,14 +71,38 @@ public enum WuLingType {
             EnumSet.of(CultivationAction.USE), HoldRequirement.ANY),
 
     ARMOR("armor", Rarity.COMMON, Items.DIAMOND_CHESTPLATE,
-            EnumSet.of(CultivationAction.GUARD), HoldRequirement.ARMOR);
+            EnumSet.of(CultivationAction.GUARD), HoldRequirement.ARMOR),
+
+    /**
+     * 腐肉：召唤类武灵（2026-10-02 用户设定）。
+     *
+     * <p>它<b>不凝聚实物</b>，而是召唤一群僵尸随从（见 {@code WuLingBinding#condense}），
+     * 所以 {@link ManifestItems} 里没有它的物品，凝聚时也不走物品分支。
+     *
+     * <p>三条专属规则：
+     * <ul>
+     *   <li><b>修炼</b>：只有攻击<b>僵尸类</b>目标才涨修为（{@link #acceptsTarget}）；</li>
+     *   <li><b>突破</b>：不要任何物资，只消耗「累计击杀僵尸数」（见 {@code Config#zombieKillsFor}）；</li>
+     *   <li><b>凝聚</b>：数量随大境界递增（默认每个大境界 5 只）。</li>
+     * </ul>
+     */
+    ROTTEN_FLESH("rotten_flesh", Rarity.MYTHIC, Items.ROTTEN_FLESH,
+            EnumSet.of(CultivationAction.ATTACK), HoldRequirement.ANY);
 
     /** 原文给出的稀有度，数值只保留相对意义 */
     public enum Rarity {
         /** 原文 1/100 */
         RARE(1.0D, "wuling.rarity.rare"),
         /** 原文 1/10 */
-        COMMON(10.0D, "wuling.rarity.common");
+        COMMON(10.0D, "wuling.rarity.common"),
+        /**
+         * 传说（腐肉）：原文 1/100000。
+         *
+         * <p>实际抽取权重不写死在这里，而是走 {@code Config#MYTHIC_WEIGHT} ——
+         * 因为它要和「其余 10 类的权重合计」一起才能换算成概率，
+         * 而其余权重将来可能调整，写死会让「1/100000」这个口径悄悄失真。
+         */
+        MYTHIC(Double.NaN, "wuling.rarity.mythic");
 
         private final double weight;
         private final String labelKey;
@@ -169,8 +193,14 @@ public enum WuLingType {
         return key;
     }
 
+    /**
+     * 抽取权重。
+     *
+     * <p>传说档（腐肉）读配置 —— 它的权重必须与「其余各档权重之和」配合，
+     * 才能让实际概率落在 1/100000 附近（推导见 {@code Config#MYTHIC_WEIGHT}）。
+     */
     public double weight() {
-        return rarity.weight();
+        return rarity == Rarity.MYTHIC ? Config.MYTHIC_WEIGHT.get() : rarity.weight();
     }
 
     public Rarity rarity() {
@@ -205,6 +235,25 @@ public enum WuLingType {
     /** 判断是否属于防具类携带要求 */
     public boolean isArmorBound() {
         return holdRequirement == HoldRequirement.ARMOR;
+    }
+
+    /**
+     * 这个武灵是否「认」该目标 —— 修炼进度只在这些目标上累积。
+     *
+     * <p>绝大多数武灵对所有目标一视同仁（返回 true）；
+     * <b>腐肉武灵例外</b>：用户设定「随着攻击僵尸修为提升」，
+     * 所以打别的怪不给进度，必须是僵尸类（见 {@link RottenFleshRule#isZombieFamily}）。
+     */
+    public boolean acceptsTarget(net.minecraft.world.entity.LivingEntity target) {
+        if (this != ROTTEN_FLESH) {
+            return true;
+        }
+        return RottenFleshRule.isZombieFamily(target);
+    }
+
+    /** 是不是召唤类武灵（凝聚出实体随从而非物品） */
+    public boolean isSummoner() {
+        return this == ROTTEN_FLESH;
     }
 
     public static WuLingType byKey(String key) {

@@ -136,6 +136,34 @@ public final class Config {
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> REQ_DIAMOND_TO_NETHERITE;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> REQ_NETHERITE_TO_EMERALD;
 
+    // ===================== 腐肉武灵（召唤类，2026-10-02） =====================
+
+    /**
+     * 传说档（腐肉武灵）在抽取池里的权重。
+     *
+     * <p>推导：其余 10 类的权重合计 = 5 个稀有 ×1 + 5 个常见 ×10 = <b>55</b>。
+     * 要让腐肉的实际概率 ≈ 1/100000，需要
+     * {@code w / (55 + w) = 1e-5} → {@code w ≈ 55e-5 = 0.00055}。
+     *
+     * <p>所以这个值不是「1/100000」的字面数，而是与上面那 55 配平后的结果 ——
+     * 将来调整基类权重时，这里要跟着重算（或直接按「想要的实际概率」反推填进来）。
+     */
+    public static final ForgeConfigSpec.DoubleValue MYTHIC_WEIGHT;
+
+    /** 腐肉武灵每一个大境界可召唤的僵尸只数（用户口径：每有一个大境界 5 只） */
+    public static final ForgeConfigSpec.IntValue ROTTEN_FLESH_ZOMBIES_PER_REALM;
+
+    /** 腐肉武灵击杀一只僵尸获得的修为进度 */
+    public static final ForgeConfigSpec.DoubleValue ROTTEN_FLESH_KILL_PROGRESS;
+
+    /** 腐肉武灵第一档突破所需击杀数；第 n 档 = 该值 × 增长率^(n-1) */
+    public static final ForgeConfigSpec.IntValue ROTTEN_FLESH_KILL_BASE;
+    /** 腐肉武灵每升一个大境界，突破所需击杀数的增长倍率 */
+    public static final ForgeConfigSpec.DoubleValue ROTTEN_FLESH_KILL_GROWTH;
+
+    /** 召唤出的僵尸从哪个大境界起可以飞行（用户口径：钻石境界） */
+    public static final ForgeConfigSpec.IntValue ROTTEN_FLESH_FLY_REALM;
+
     // ===================== 怪物等级（武灵属性，2026-09-27） =====================
     /** 怪物带武灵等级的概率 */
     public static final ForgeConfigSpec.DoubleValue MONSTER_TIER_CHANCE;
@@ -327,6 +355,43 @@ public final class Config {
 
         BUILDER.pop();
 
+        // ===================== 腐肉武灵（召唤类，2026-10-02） =====================
+
+        BUILDER.push("rottenFlesh");
+
+        MYTHIC_WEIGHT = BUILDER.comment(
+                        "传说档（腐肉武灵）在牧师抽取池里的权重。",
+                        "其余 10 类权重合计 55（5 稀有 ×1 + 5 常见 ×10），",
+                        "所以 0.00055 时实际概率 ≈ 0.00055 / 55.00055 ≈ 1/100000。",
+                        "想要更容易抽到就把这个值调大（概率 = 本值 / (55 + 本值)）。")
+                .defineInRange("mythicWeight", 0.00055D, 0.0D, 1000.0D);
+
+        ROTTEN_FLESH_ZOMBIES_PER_REALM = BUILDER.comment(
+                        "腐肉武灵每个大境界能召唤的僵尸只数。",
+                        "木 5 · 石 10 · 黄金 15 · 玄铁 20 · 钻石 25 · 下界合金 30 · 绿宝石 35。")
+                .defineInRange("zombiesPerRealm", 5, 1, 100);
+
+        ROTTEN_FLESH_KILL_PROGRESS = BUILDER.comment(
+                        "腐肉武灵击杀一只僵尸得到的修为进度。",
+                        "注意它会再乘一次灵珠品质的修炼速度倍率（见 cultivationBonus*）。")
+                .defineInRange("killProgress", 8.0D, 0.0D, 100000.0D);
+
+        ROTTEN_FLESH_KILL_BASE = BUILDER.comment(
+                        "腐肉武灵第一次大境界突破（木→石）所需击杀的僵尸数。")
+                .defineInRange("killBase", 20, 1, 1000000);
+
+        ROTTEN_FLESH_KILL_GROWTH = BUILDER.comment(
+                        "腐肉武灵每升一个大境界，突破所需击杀数的增长倍率。",
+                        "默认 2.5 → 六档依次为 20 / 50 / 125 / 312 / 781 / 1953 只。")
+                .defineInRange("killGrowth", 2.5D, 1.0D, 100.0D);
+
+        ROTTEN_FLESH_FLY_REALM = BUILDER.comment(
+                        "召唤出的僵尸从哪个大境界起可以飞行（0木 1石 2黄金 3玄铁 4钻石 5下界合金 6绿宝石）。",
+                        "用户设定：钻石境界起。")
+                .defineInRange("flyFromRealm", 4, 0, 6);
+
+        BUILDER.pop();
+
         // ===================== 怪物等级（武灵属性） =====================
 
         BUILDER.push("monsterTier");
@@ -478,6 +543,8 @@ public final class Config {
         for (int realm = 1; realm <= 6; realm++) {
             WulingEmpire.LOGGER.info("[武灵帝国] 突破物资生效值 · {} = {}（ALL_BEADS = 不限品质，"
                     + "ALL_JI_BEADS = 只要极品）", REALM_STEP_NAMES[realm], breakthroughRequirement(realm));
+            WulingEmpire.LOGGER.info("[武灵帝国] 腐肉武灵突破生效值 · {} = 击杀僵尸 {} 只",
+                    REALM_STEP_NAMES[realm], zombieKillsFor(realm));
         }
     }
 
@@ -492,5 +559,21 @@ public final class Config {
             case 6: return REQ_NETHERITE_TO_EMERALD.get();
             default: return java.util.Collections.emptyList();
         }
+    }
+
+    /**
+     * 腐肉武灵突破所需的僵尸击杀数（第 realmOrdinal 个大境界，从 1 起）。
+     *
+     * <p>= {@code killBase × killGrowth^(realmOrdinal - 1)}，默认 20 / 50 / 125 / 312 / 781 / 1953。
+     * 走击杀数而不是物资，是用户 2026-10-02 的设定
+     * 「升级不消耗材料，只消耗击杀僵尸的量」。
+     */
+    public static int zombieKillsFor(int realmOrdinal) {
+        if (realmOrdinal <= 0) {
+            return 0;
+        }
+        double value = ROTTEN_FLESH_KILL_BASE.get()
+                * Math.pow(ROTTEN_FLESH_KILL_GROWTH.get(), realmOrdinal - 1);
+        return (int) Math.ceil(value);
     }
 }

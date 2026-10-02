@@ -26,10 +26,13 @@ public final class ClientWuLingData {
     private static double cultivationBonus = 1.0D;
     /** 已缴纳的突破物资（键 → 数量），由服务端同步 */
     private static Map<String, Integer> submitted = Map.of();
+    /** 腐肉武灵的累计击杀僵尸数（突破货币） */
+    private static int zombieKills = 0;
 
     public static void set(boolean bound, String typeKey, String sourceKey,
                            int realmOrdinal, int stageOrdinal, double progress,
-                           double threshold, double cultivationBonus, Map<String, Integer> submitted) {
+                           double threshold, double cultivationBonus, Map<String, Integer> submitted,
+                           int zombieKills) {
         ClientWuLingData.bound = bound;
         ClientWuLingData.typeKey = typeKey;
         ClientWuLingData.sourceKey = sourceKey;
@@ -39,6 +42,7 @@ public final class ClientWuLingData {
         ClientWuLingData.threshold = threshold;
         ClientWuLingData.cultivationBonus = cultivationBonus;
         ClientWuLingData.submitted = submitted == null ? Map.of() : submitted;
+        ClientWuLingData.zombieKills = Math.max(0, zombieKills);
     }
 
     /** 已缴纳物资快照，供突破面板渲染 */
@@ -51,7 +55,22 @@ public final class ClientWuLingData {
      * 不清的话，「开过武灵的存档 → 没开武灵的存档」会有一小段残留显示。
      */
     public static void reset() {
-        set(false, WuLingType.SWORD.key(), "", 0, 0, 0.0D, 1.0D, 1.0D, Map.of());
+        set(false, WuLingType.SWORD.key(), "", 0, 0, 0.0D, 1.0D, 1.0D, Map.of(), 0);
+    }
+
+    /** 腐肉武灵：累计击杀的僵尸数 */
+    public static int zombieKills() {
+        return zombieKills;
+    }
+
+    /** 腐肉武灵：突破到下一档需要的击杀数 */
+    public static int zombieKillsNeed() {
+        return com.wuling.empire.Config.zombieKillsFor(realmOrdinal + 1);
+    }
+
+    /** 腐肉武灵：距离下一档突破还差几只（已达返回 0） */
+    public static int zombieKillsShortfall() {
+        return Math.max(0, zombieKillsNeed() - zombieKills);
     }
 
     public static boolean isBound() {

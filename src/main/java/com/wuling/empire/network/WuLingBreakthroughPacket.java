@@ -74,14 +74,26 @@ public class WuLingBreakthroughPacket {
 
             // 突破不校验灵力：灵力只与「凝聚武灵」挂钩（0.2.15 起门槛也一并去掉）
 
-            // 物资校验 + 扣除（会先把背包里剩余的自动缴进缴纳池，再判定池子是否齐全）
-            BreakthroughRequirement.Result result =
-                    BreakthroughRequirement.tryConsumeAndAdvance(player, target, data);
-            if (!result.success()) {
-                player.sendSystemMessage(result.message());
-                // 物资不够，但缴纳池可能已经入账，同步给客户端刷新面板
-                ModMessages.sendWuLingTo(player);
-                return;
+            if (data.type().isSummoner()) {
+                // 腐肉武灵：不要任何物资，只消耗累计击杀的僵尸数（2026-10-02 用户口径）
+                int need = Config.zombieKillsFor(target);
+                if (!data.consumeZombieKills(need)) {
+                    player.sendSystemMessage(Component.translatable(
+                            "message.wulingdiguo.breakthrough_zombie_missing",
+                            need - data.zombieKills(), need));
+                    ModMessages.sendWuLingTo(player);
+                    return;
+                }
+            } else {
+                // 物资校验 + 扣除（会先把背包里剩余的自动缴进缴纳池，再判定池子是否齐全）
+                BreakthroughRequirement.Result result =
+                        BreakthroughRequirement.tryConsumeAndAdvance(player, target, data);
+                if (!result.success()) {
+                    player.sendSystemMessage(result.message());
+                    // 物资不够，但缴纳池可能已经入账，同步给客户端刷新面板
+                    ModMessages.sendWuLingTo(player);
+                    return;
+                }
             }
 
             data.advanceRealm();

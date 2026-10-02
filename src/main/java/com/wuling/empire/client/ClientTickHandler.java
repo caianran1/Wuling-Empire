@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.wuling.empire.WulingEmpire;
 import com.wuling.empire.network.ModMessages;
 import com.wuling.empire.network.WuLingCondensePacket;
+import com.wuling.empire.network.WuLingDismissPacket;
 import com.wuling.empire.wuling.WuLingType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -22,10 +23,11 @@ import org.lwjgl.glfw.GLFW;
  *       <b>例外：书武灵</b>的凝聚物是附魔书，附魔与等级要玩家自己挑，
  *       所以这一档改为打开 {@link WuLingBookScreen}（2026-10-01）。</li>
  *   <li><b>Shift + N</b> → 直接打开武灵升级面板（纯客户端界面，数据由服务端同步过来）。</li>
+ *   <li><b>Shift + P</b> → 让召唤出的僵尸消散（腐肉武灵专用）。</li>
  * </ul>
  *
- * 两者都<b>不要求携带武灵绑定器</b>（0.2.20 起）—— 绑定器只负责「选种类」。
- * 只按 M / N 不给 Shift 会给出提示，避免误触。
+ * 三者都<b>不要求携带武灵绑定器</b>（0.2.20 起）—— 绑定器只负责「选种类」。
+ * 只按 M / N / P 不给 Shift 会给出提示，避免误触。
  */
 @Mod.EventBusSubscriber(modid = WulingEmpire.MODID, value = Dist.CLIENT)
 public final class ClientTickHandler {
@@ -52,7 +54,8 @@ public final class ClientTickHandler {
         // 所以先取「是否点了」再判断 screen，而不是反过来。
         boolean condense = ModKeyMappings.CONDENSE.consumeClick();
         boolean panel = ModKeyMappings.PANEL.consumeClick();
-        if (!condense && !panel) {
+        boolean dismiss = ModKeyMappings.DISMISS.consumeClick();
+        if (!condense && !panel && !dismiss) {
             return;
         }
         if (mc.screen != null) {
@@ -80,6 +83,15 @@ public final class ClientTickHandler {
                         Component.translatable("message.wulingdiguo.panel_need_shift"));
             } else {
                 mc.setScreen(new WuLingUpgradeScreen());
+            }
+        }
+
+        if (dismiss) {
+            if (!shift) {
+                mc.player.sendSystemMessage(
+                        Component.translatable("message.wulingdiguo.dismiss_need_shift"));
+            } else {
+                ModMessages.INSTANCE.sendToServer(new WuLingDismissPacket());
             }
         }
     }

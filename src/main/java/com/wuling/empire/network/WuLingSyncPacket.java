@@ -24,10 +24,13 @@ public class WuLingSyncPacket {
     private final double cultivationBonus;
     /** 已缴纳的突破物资（键 → 数量），用于面板显示「已缴 N」 */
     private final Map<String, Integer> submitted;
+    /** 腐肉武灵的累计击杀僵尸数（突破货币），供面板显示进度 */
+    private final int zombieKills;
 
     public WuLingSyncPacket(boolean bound, String typeKey, String sourceKey,
                             int realmOrdinal, int stageOrdinal, double progress,
-                            double threshold, double cultivationBonus, Map<String, Integer> submitted) {
+                            double threshold, double cultivationBonus, Map<String, Integer> submitted,
+                            int zombieKills) {
         this.bound = bound;
         this.typeKey = typeKey;
         this.sourceKey = sourceKey;
@@ -37,6 +40,7 @@ public class WuLingSyncPacket {
         this.threshold = threshold;
         this.cultivationBonus = cultivationBonus;
         this.submitted = submitted == null ? Map.of() : submitted;
+        this.zombieKills = zombieKills;
     }
 
     public static void encode(WuLingSyncPacket msg, FriendlyByteBuf buf) {
@@ -53,6 +57,7 @@ public class WuLingSyncPacket {
             buf.writeUtf(e.getKey());
             buf.writeVarInt(e.getValue());
         }
+        buf.writeVarInt(msg.zombieKills);
     }
 
     public static WuLingSyncPacket decode(FriendlyByteBuf buf) {
@@ -71,15 +76,17 @@ public class WuLingSyncPacket {
             int amount = buf.readVarInt();
             submitted.put(key, amount);
         }
+        int zombieKills = buf.readVarInt();
         return new WuLingSyncPacket(bound, typeKey, sourceKey, realmOrdinal,
-                stageOrdinal, progress, threshold, cultivationBonus, submitted);
+                stageOrdinal, progress, threshold, cultivationBonus, submitted, zombieKills);
     }
 
     public static void handle(WuLingSyncPacket msg, Supplier<NetworkEvent.Context> ctx) {
         NetworkEvent.Context context = ctx.get();
         context.enqueueWork(() -> ClientWuLingData.set(
                 msg.bound, msg.typeKey, msg.sourceKey, msg.realmOrdinal,
-                msg.stageOrdinal, msg.progress, msg.threshold, msg.cultivationBonus, msg.submitted));
+                msg.stageOrdinal, msg.progress, msg.threshold, msg.cultivationBonus,
+                msg.submitted, msg.zombieKills));
         context.setPacketHandled(true);
     }
 }

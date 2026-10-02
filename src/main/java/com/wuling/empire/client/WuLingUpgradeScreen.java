@@ -45,16 +45,19 @@ public class WuLingUpgradeScreen extends Screen {
         int gap = 6;
         int halfWidth = (PANEL_WIDTH - 40 - gap) / 2;
 
-        // 提交物资：背包放不下时，先把能缴的缴进缴纳池
-        this.addRenderableWidget(Button.builder(
-                        Component.translatable("wuling.panel.submit"),
-                        button -> {
-                            ModMessages.INSTANCE.sendToServer(
-                                    new com.wuling.empire.network.WuLingSubmitPacket());
-                            refreshRows();
-                        })
-                .bounds(left + 20, buttonY, halfWidth, 20)
-                .build());
+        // 提交物资：背包放不下时，先把能缴的缴进缴纳池。
+        // 腐肉武灵不看物资（突破只消耗击杀数），这一格直接省掉。
+        if (!ClientWuLingData.type().isSummoner()) {
+            this.addRenderableWidget(Button.builder(
+                            Component.translatable("wuling.panel.submit"),
+                            button -> {
+                                ModMessages.INSTANCE.sendToServer(
+                                        new com.wuling.empire.network.WuLingSubmitPacket());
+                                refreshRows();
+                            })
+                    .bounds(left + 20, buttonY, halfWidth, 20)
+                    .build());
+        }
 
         this.addRenderableWidget(Button.builder(
                         Component.translatable("wuling.panel.breakthrough"),
@@ -69,12 +72,40 @@ public class WuLingUpgradeScreen extends Screen {
 
     private void refreshRows() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) {
+        if (mc.player == null || ClientWuLingData.type().isSummoner()) {
+            // 召唤类武灵不看物资，省掉每 10 帧的全背包扫描
             rows = List.of();
             return;
         }
         rows = BreakthroughRequirement.evaluate(mc.player, ClientWuLingData.realmOrdinal() + 1,
                 ClientWuLingData.submitted());
+    }
+
+    /**
+     * 腐肉武灵的突破页：显示击杀僵尸的进度，而不是物资清单。
+     * 用户口径是「升级不消耗材料，只消耗击杀僵尸的量」。
+     */
+    private void renderSummonBreakthrough(GuiGraphics graphics, Font font,
+                                          int left, int cx, int y) {
+        graphics.drawCenteredString(font,
+                BreakthroughRequirement.titleFor(ClientWuLingData.realmOrdinal() + 1),
+                cx, y, 0xFFFFCC55);
+        y += 16;
+
+        int have = ClientWuLingData.zombieKills();
+        int need = ClientWuLingData.zombieKillsNeed();
+        boolean ok = have >= need;
+
+        graphics.drawString(font, Component.translatable("wuling.panel.zombie_kills"),
+                left + 16, y, 0xFFDDDDDD);
+        graphics.drawString(font,
+                Component.translatable("wuling.panel.count", have, need),
+                left + PANEL_WIDTH - 76, y, ok ? 0xFF66FF66 : 0xFFFF6666);
+        y += 14;
+
+        graphics.drawString(font,
+                Component.translatable("wuling.panel.zombie_kills_hint"),
+                left + 16, y, 0xFF888888);
     }
 
     @Override
@@ -136,6 +167,17 @@ public class WuLingUpgradeScreen extends Screen {
 
         boolean atLate = ClientWuLingData.stage() == WuLingStage.LATE;
         int y = barY + 24;
+
+        // 腐肉武灵：突破页换成击杀进度（不看物资）
+        if (ClientWuLingData.type().isSummoner()) {
+            renderSummonBreakthrough(graphics, font, left, cx, y);
+            if (!atLate) {
+                graphics.drawCenteredString(font,
+                        Component.translatable("wuling.panel.cultivating"),
+                        cx, y + 38, 0xFF888888);
+            }
+            return;
+        }
 
         if (!atLate) {
             graphics.drawCenteredString(font,

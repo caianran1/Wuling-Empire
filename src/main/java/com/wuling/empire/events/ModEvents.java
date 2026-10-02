@@ -8,8 +8,10 @@ import com.wuling.empire.entity.CorpseEntity;
 import com.wuling.empire.wuling.BreakthroughRequirement;
 import com.wuling.empire.wuling.CultivationAction;
 import com.wuling.empire.wuling.MonsterTier;
+import com.wuling.empire.wuling.RottenFleshRule;
 import com.wuling.empire.wuling.WuLingBinding;
 import com.wuling.empire.wuling.WuLingRealm;
+import com.wuling.empire.wuling.WuLingType;
 import com.wuling.empire.network.ModMessages;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -71,8 +73,9 @@ public class ModEvents {
         if (!(event.getSource().getEntity() instanceof Player player)) {
             return;
         }
+        // 把目标一起带进去 —— 腐肉武灵只认僵尸类目标（见 WuLingType#acceptsTarget）
         cultivate(player, Config.PROGRESS_ATTACK.get() * event.getAmount(),
-                CultivationAction.ATTACK);
+                CultivationAction.ATTACK, target);
     }
 
     /** 弓箭命中（远程武灵） */
@@ -126,9 +129,22 @@ public class ModEvents {
     }
 
     private void cultivate(Player player, double amount, CultivationAction action) {
+        cultivate(player, amount, action, null);
+    }
+
+    /**
+     * @param target 本次动作作用的目标；没有具体目标（挖掘 / 承伤 / 用道具）时传 null。
+     *               腐肉武灵靠它把「打僵尸才算修炼」这条规则落到实处
+     */
+    private void cultivate(Player player, double amount, CultivationAction action,
+                           LivingEntity target) {
         player.getCapability(ModCapabilities.WU_LING).ifPresent(wuLing -> {
             // 只有真的「在使用自己的武灵」才计入修炼进度
             if (!wuLing.data().type().countsAs(player.getMainHandItem(), player.getInventory())) {
+                return;
+            }
+            // 腐肉武灵：打别的怪不给进度，必须打僵尸
+            if (target != null && !wuLing.data().type().acceptsTarget(target)) {
                 return;
             }
             boolean promoted = wuLing.addProgress(amount, action);
@@ -138,6 +154,45 @@ public class ModEvents {
                 // 小境界不改实物档次，但每次升级都顺手同步一遍 ——
                 // 若手上已是当前境界那件就什么都不做（见 WuLingBinding#refreshManifestItems）
                 WuLingBinding.refreshManifestItems(player);
+                ModMessages.sendWuLingTo(serverPlayer);
+            }
+        });
+    }
+
+    // ===================== 腐肉武灵：击杀僵尸计数 =====================
+
+    /**
+     * 击杀僵尸类 → 累计击杀数 +1。
+     *
+     * <p>这是腐肉武灵<b>唯一的突破货币</b>（用户设定「升级不消耗材料，
+     * 只消耗击杀僵尸的量」），所以只认「玩家亲手打死」的僵尸 ——
+     * 别的生物互殴致死、或者僵尸自己烧死的都不算。
+     */
+    @SubscribeEvent
+    public void onZombieSlain(LivingDeathEvent event) {
+        LivingEntity dead = event.getEntity();
+        if (dead.level().isClientSide()) {
+            return;
+        }
+        if (!RottenFleshRule.isZombieFamily(dead)) {
+            return;
+        }
+        if (!(event.getSource().getEntity() instanceof Player player)) {
+            return;
+        }
+        player.getCapability(ModCapabilities.WU_LING).ifPresent(wuLing -> {
+            if (wuLing.data().type() != WuLingType.ROTTEN_FLESH) {
+                return;
+            }
+            wuLing.data().addZombieKills(1);
+            // 击杀本身也算一次修炼（走完整流程，会乘灵珠品质的修炼速度加成）
+            boolean promoted = wuLing.addProgress(
+                    Config.ROTTEN_FLESH_KILL_PROGRESS.get(), CultivationAction.ATTACK);
+            if (player instanceof ServerPlayer serverPlayer) {
+                if (promoted) {
+                    player.sendSystemMessage(Component.translatable("message.wulingdiguo.stage_up",
+                            ClientSafe.realmLabel(wuLing.data())));
+                }
                 ModMessages.sendWuLingTo(serverPlayer);
             }
         });

@@ -53,6 +53,9 @@ public final class ModMessages {
         INSTANCE.registerMessage(6, WuLingBookPacket.class,
                 WuLingBookPacket::encode, WuLingBookPacket::decode,
                 WuLingBookPacket::handle);
+        INSTANCE.registerMessage(7, WuLingDismissPacket.class,
+                WuLingDismissPacket::encode, WuLingDismissPacket::decode,
+                WuLingDismissPacket::handle);
     }
 
     /** 把玩家的灵力值推送给该玩家的客户端 */
@@ -85,7 +88,8 @@ public final class ModMessages {
                             data.progress(),
                             Config.stageThreshold(data.realmOrdinal()),
                             data.cultivationBonus(),
-                            data.submittedSnapshot()));
+                            data.submittedSnapshot(),
+                            data.zombieKills()));
         });
     }
 }

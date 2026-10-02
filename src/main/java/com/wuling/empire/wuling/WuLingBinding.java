@@ -3,6 +3,8 @@ package com.wuling.empire.wuling;
 import com.wuling.empire.Config;
 import com.wuling.empire.capability.ISpiritPower;
 import com.wuling.empire.capability.ModCapabilities;
+import com.wuling.empire.entity.ModEntities;
+import com.wuling.empire.entity.WuLingZombieEntity;
 import com.wuling.empire.item.ManifestItems;
 import com.wuling.empire.item.ModItems;
 import com.wuling.empire.item.SpiritBeadItem;
@@ -247,6 +249,13 @@ public final class WuLingBinding {
             }
 
             WuLingData data = holder.data();
+
+            // 腐肉武灵是召唤类（2026-10-02）：不产物品，改成一队僵尸随从
+            if (data.type().isSummoner()) {
+                summonZombies(player, data, cost, spirit, free);
+                return;
+            }
+
             // 护甲武灵一次给整套四件（头 / 胸 / 腿 / 靴），其余种类只有一件。
             java.util.List<ItemStack> items =
                     data.type().manifest(data.realmOrdinal(), data.stageOrdinal());
@@ -289,6 +298,62 @@ public final class WuLingBinding {
                                 items.get(0).getHoverName()));
             }
         });
+    }
+
+    /**
+     * 腐肉武灵的凝聚：召唤一队僵尸随从（2026-10-02 用户设定）。
+     *
+     * <p>数量随<b>大境界</b>递增（默认每个大境界 5 只：木 5 → 绿宝石 35），
+     * 并在设定档位以上（默认钻石）赋予飞行能力。
+     *
+     * <p>与物品型凝聚共用同一份灵力消耗 —— 一次召唤一整队，只收一次费。
+     */
+    private static void summonZombies(Player player, WuLingData data, float cost,
+                                      ISpiritPower spirit, boolean free) {
+        int count = RottenFleshRule.summonsFor(data.realmOrdinal());
+        boolean flying = RottenFleshRule.canFly(data.realmOrdinal());
+
+        if (cost > 0.0F && spirit != null) {
+            spirit.addSpirit(-cost);
+            if (player instanceof ServerPlayer serverPlayer) {
+                ModMessages.sendSpiritTo(serverPlayer);
+            }
+        }
+
+        int spawned = 0;
+        for (int i = 0; i < count; i++) {
+            WuLingZombieEntity zombie = ModEntities.WU_LING_ZOMBIE.get().create(player.level());
+            if (zombie == null) {
+                continue;
+            }
+            // 围成一圈落在玩家身边，免得几十只全挤在同一格互相推挤
+            double angle = (Math.PI * 2.0D / count) * i;
+            double radius = 1.5D;
+            double x = player.getX() + Math.cos(angle) * radius;
+            double z = player.getZ() + Math.sin(angle) * radius;
+            double y = player.getY() + (flying ? 1.5D : 0.0D);
+
+            zombie.moveTo(x, y, z, player.getYRot(), 0.0F);
+            zombie.setOwner(player);
+            zombie.setFlying(flying);
+            player.level().addFreshEntity(zombie);
+            spawned++;
+        }
+
+        if (spawned <= 0) {
+            return;
+        }
+
+        player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.ZOMBIE_AMBIENT, player.getSoundSource(), 1.0F, 0.6F);
+
+        if (cost > 0.0F) {
+            player.sendSystemMessage(Component.translatable("message.wulingdiguo.summon_zombies",
+                    spawned, trim(cost), trim(spirit == null ? 0.0F : spirit.getSpirit())));
+        } else {
+            player.sendSystemMessage(Component.translatable("message.wulingdiguo.summon_zombies_free",
+                    spawned));
+        }
     }
 
     /**
