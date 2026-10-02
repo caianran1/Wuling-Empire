@@ -25,6 +25,9 @@ public final class ModEntities {
     /**
      * 倒地尸体：怪物死亡后留在原地，右键搜刮灵珠。
      * 继承 Entity 而非 LivingEntity —— 它不需要 AI、属性、伤害系统。
+     *
+     * <p>2026-10-02 起<b>只有末影龙</b>还会生成它：普通怪改为直接掉落灵珠
+     * （见 {@code SpiritBeadDrops}），用户要求末影龙的专属尸体保留下来当光柱地标。
      */
     public static final RegistryObject<EntityType<CorpseEntity>> SPIRIT_CORPSE =
             ENTITY_TYPES.register("spirit_corpse", () ->

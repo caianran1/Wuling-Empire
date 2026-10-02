@@ -5,6 +5,7 @@ import com.wuling.empire.capability.ModCapabilities;
 import com.wuling.empire.capability.SpiritPowerProvider;
 import com.wuling.empire.capability.WuLingProvider;
 import com.wuling.empire.entity.CorpseEntity;
+import com.wuling.empire.item.SpiritBeadDrops;
 import com.wuling.empire.wuling.BreakthroughRequirement;
 import com.wuling.empire.wuling.CultivationAction;
 import com.wuling.empire.wuling.MonsterTier;
@@ -47,7 +48,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import java.util.List;
 
 /**
- * 游戏内事件处理：灵力计算、尸体生成与搜刮、数据同步、调试指令。
+ * 游戏内事件处理：灵力计算、灵珠掉落、数据同步、调试指令。
  */
 public class ModEvents {
 
@@ -248,7 +249,7 @@ public class ModEvents {
         }
     }
 
-    // ===================== 怪物死亡 -> 生成尸体 =====================
+    // ===================== 怪物死亡 -> 掉落灵珠 =====================
 
     @SubscribeEvent
     public void onLivingDeath(LivingDeathEvent event) {
@@ -266,6 +267,8 @@ public class ModEvents {
         }
 
         // Part 3：末影龙死亡生成专属尸体（末影龙并非 Enemy，需单独处理，且先于下方 Enemy 判断以免漏掉）
+        // 2026-10-02：末影龙是唯一还留尸体的怪（大命中箱 + 紫色光柱地标），
+        // 用户明确要求保留；普通怪改为直接掉灵珠，见下。
         if (dead instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
             CorpseEntity corpse = CorpseEntity.create(level, dead);
             level.addFreshEntity(corpse);
@@ -282,8 +285,9 @@ public class ModEvents {
             return;
         }
 
-        CorpseEntity corpse = CorpseEntity.create(level, dead);
-        level.addFreshEntity(corpse);
+        // 2026-10-02 用户口径「怪物掉落灵珠改为直接掉落而不是尸体」：
+        // 不再留尸体，就地掉一颗灵珠，走过去立刻就能捡。
+        SpiritBeadDrops.dropAt(level, dead, SpiritBeadDrops.roll(dead));
     }
 
     // ===================== 灵力自然回复 + 定期同步 =====================
@@ -341,7 +345,7 @@ public class ModEvents {
         });
     }
 
-    // ===================== 尸体外观同步 =====================
+    // ===================== 尸体外观同步（只剩末影龙尸体） =====================
 
     /** 玩家进入尸体追踪范围时，补发外观数据（NBT 太大，不适合走 EntityData） */
     @SubscribeEvent
@@ -354,7 +358,7 @@ public class ModEvents {
         }
     }
 
-    // ===================== 右键搜刮尸体 =====================
+    // ===================== 右键搜刮尸体（只剩末影龙尸体） =====================
 
     @SubscribeEvent
     public void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
@@ -385,7 +389,7 @@ public class ModEvents {
         level.playSound(null, corpse.getX(), corpse.getY(), corpse.getZ(),
                 SoundEvents.ITEM_PICKUP, player.getSoundSource(), 0.6F, 1.0F);
 
-        // 末影龙尸体作为地标保留（紫色光柱继续存在），普通尸体取完即消失
+        // 末影龙尸体作为光柱地标保留（取完珠尸体不消失）
         if (!corpse.isDragon()) {
             corpse.discard();
         }

@@ -1,9 +1,7 @@
 package com.wuling.empire.entity;
 
 import com.wuling.empire.Config;
-import com.wuling.empire.item.ModItems;
-import com.wuling.empire.item.SpiritBeadItem;
-import com.wuling.empire.item.SpiritQuality;
+import com.wuling.empire.item.SpiritBeadDrops;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -28,17 +26,21 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * 倒地尸体实体。
+ * 倒地尸体实体 —— <b>2026-10-02 起只服务末影龙</b>。
  *
- * 服务端职责：
+ * <p>用户口径「怪物掉落灵珠改为直接掉落而不是尸体」：普通敌对生物改为
+ * {@link SpiritBeadDrops#dropAt} 就地掉灵珠；末影龙按用户选择保留专属尸体
+ * （大命中箱 + 紫色光柱地标，取珠后尸体不消失）。
+ *
+ * <p>服务端职责：
  *  1. 保存死亡怪物的外观数据（NBT），供客户端还原模型
  *  2. 保存该尸体承载的灵珠列表
  *  3. 计时，超时后消失（可配置是否把灵珠掉地上）
  *
- * 客户端职责：
- *  1. 由服务端在进 Tracking 时同步来的 NBT 还原出原怪物实体用于渲染（见 CorpseRenderer）
+ * <p>客户端职责：由服务端在进 Tracking 时同步来的 NBT 还原出原怪物实体用于渲染
+ * （见 CorpseRenderer）
  *
- * 交互：玩家右键 -> 灵珠直接进入背包（在 ModEvents 中处理）
+ * <p>交互：玩家右键 -> 灵珠直接进入背包（在 ModEvents 中处理）
  */
 public class CorpseEntity extends Entity {
 
@@ -66,7 +68,12 @@ public class CorpseEntity extends Entity {
         super(type, level);
     }
 
-    /** 服务端构造入口：在怪物死亡处生成尸体 */
+    /**
+     * 服务端构造入口：在怪物死亡处生成尸体。
+     *
+     * <p><b>2026-10-02 起只有末影龙还会走这里</b> —— 普通怪改为
+     * {@link SpiritBeadDrops#dropAt} 直接掉灵珠，不再留尸体。
+     */
     public static CorpseEntity create(Level level, LivingEntity dead) {
         CorpseEntity corpse = new CorpseEntity(ModEntities.SPIRIT_CORPSE.get(), level);
         corpse.captureAppearance(dead);
@@ -78,9 +85,7 @@ public class CorpseEntity extends Entity {
         if (dead instanceof EnderDragon) {
             corpse.dragon = true;
             corpse.beads.clear();
-            ItemStack bead = new ItemStack(ModItems.BEADS.get(SpiritQuality.JI).get());
-            SpiritBeadItem.setSource(bead, "minecraft:ender_dragon");
-            corpse.addBead(bead);
+            corpse.addBead(SpiritBeadDrops.dragonBead());
         }
         return corpse;
     }
@@ -226,51 +231,13 @@ public class CorpseEntity extends Entity {
     }
 
     /**
-     * 服务端用：按设定，一只怪只掉 1 颗灵珠，品质由 rollQuality 决定。
-     * 怪物强度只影响品质高低，不影响数量。
+     * 服务端用：按设定，一只怪只掉 1 颗灵珠，品质由怪物强度决定。
+     *
+     * <p>掷灵珠的逻辑统一在 {@link SpiritBeadDrops#roll} —— 现在普通怪走
+     * 「直接掉地上」那条路，这里只剩末影龙尸体在用同一套掷法。
      */
     public void fillBeads(LivingEntity dead) {
-        ItemStack bead = new ItemStack(ModItems.BEADS.get(randomQuality(dead)).get());
-
-        // 记录来源生物：这是第二部「灵珠种类决定修炼方向」和
-        // 第四部「极品 XX 灵珠」分物种定价的依据
-        ResourceLocation sourceId = BuiltInRegistries.ENTITY_TYPE.getKey(dead.getType());
-        SpiritBeadItem.setSource(bead, sourceId == null ? "" : sourceId.toString());
-
-        this.addBead(bead);
-    }
-
-    /**
-     * 品质随机：权重 = 基础权重 * (强度系数 ^ 品质序号)
-     * 强度系数由怪物最大生命值推定，越硬的怪越容易出高品质灵珠。
-     * 这是一个怪的实力差体此刻品质而非数量。
-     */
-    private SpiritQuality randomQuality(LivingEntity dead) {
-        double influence = Config.STRENGTH_INFLUENCE.get();
-        double hp = dead.getMaxHealth();
-        double base = Math.max(0.05D, 1.0D + ((hp - 20.0D) / 40.0D) * influence);
-
-        SpiritQuality[] values = SpiritQuality.values();
-        double[] weights = new double[values.length];
-        double total = 0.0D;
-        for (int i = 0; i < values.length; i++) {
-            double w = Math.max(0.0D, values[i].weight() * Math.pow(base, values[i].tier()));
-            weights[i] = w;
-            total += w;
-        }
-        if (total <= 0.0D) {
-            return SpiritQuality.FAN;
-        }
-
-        double roll = this.random.nextDouble() * total;
-        double acc = 0.0D;
-        for (int i = 0; i < values.length; i++) {
-            acc += weights[i];
-            if (roll < acc) {
-                return values[i];
-            }
-        }
-        return SpiritQuality.FAN;
+        this.addBead(SpiritBeadDrops.roll(dead));
     }
 
     // ===================== 逻辑 =====================

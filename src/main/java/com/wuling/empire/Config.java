@@ -239,10 +239,12 @@ public final class Config {
 
         BUILDER.push("corpse");
 
-        CORPSE_LIFETIME_TICKS = BUILDER.comment("尸体存在时长（tick），1200 tick = 1 分钟")
+        // 2026-10-02：普通怪改为直接掉灵珠，尸体只剩末影龙在用，所以这两项只对它生效
+        CORPSE_LIFETIME_TICKS = BUILDER.comment("尸体存在时长（tick），1200 tick = 1 分钟。",
+                        "2026-10-02 起普通怪不再留尸体（改为直接掉落灵珠），本项只对末影龙尸体生效。")
                 .defineInRange("lifetimeTicks", 12000, 20, Integer.MAX_VALUE);
 
-        DROP_BEADS_TO_GROUND_ON_TIMEOUT = BUILDER.comment("尸体超时消失时是否把未取走的灵珠掉落到地面")
+        DROP_BEADS_TO_GROUND_ON_TIMEOUT = BUILDER.comment("末影龙尸体超时消失时是否把未取走的灵珠掉落到地面")
                 .define("dropBeadsOnTimeout", true);
 
         BUILDER.pop();
