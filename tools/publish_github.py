@@ -46,7 +46,9 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OWNER = 'caianran1'
-REPO = 'Wuling-Empire'
+# 仓库 2026-10-02 由 Wuling-Empire 改名为 Wuling-Empire-for-Minecraft。
+# 旧名仍然可用（GitHub 会 301 重定向），但 API 走旧名会多一跳，且未来可能失效，所以直接写新名。
+REPO = 'Wuling-Empire-for-Minecraft'
 BRANCH = 'main'
 API = 'https://api.github.com'
 UA = 'wuling-publish'
