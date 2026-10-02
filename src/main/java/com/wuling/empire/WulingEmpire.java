@@ -6,6 +6,7 @@ import com.wuling.empire.entity.ModEntities;
 import com.wuling.empire.events.ModEvents;
 import com.wuling.empire.item.ManifestItems;
 import com.wuling.empire.item.ModItems;
+import com.wuling.empire.item.RedstoneItems;
 import com.wuling.empire.item.SpiritQuality;
 import com.wuling.empire.network.ModMessages;
 import com.wuling.empire.wuling.WuLingRealm;
@@ -55,6 +56,8 @@ public class WulingEmpire {
         ModItems.ITEMS.register(modBus);
         // 武灵凝聚物（每个境界各一套，共 91 件）单独一个 DeferredRegister
         ManifestItems.ITEMS.register(modBus);
+        // 红石装备（红石锭 + 红石战铠八件，充能类）
+        RedstoneItems.ITEMS.register(modBus);
         ModEntities.ENTITY_TYPES.register(modBus);
 
         // 能力（Capability）注册：必须在值被获取之前完成
@@ -100,6 +103,8 @@ public class WulingEmpire {
             event.accept(new ItemStack(ModItems.WU_LING_BINDER.get()));
             // 创造武灵绑定器：创造模式切换武灵用
             event.accept(new ItemStack(ModItems.CREATIVE_WU_LING_BINDER.get()));
+            // 红石锭：正常途径靠 9 个武灵红石粉合成
+            event.accept(new ItemStack(RedstoneItems.REDSTONE_INGOT.get()));
         }
         // 绿宝石武灵装备：正常途径靠「凝聚武灵」得到，这里放一份仅供创造模式试外观
         if (event.getTabKey() == CreativeModeTabs.COMBAT) {
@@ -114,6 +119,16 @@ public class WulingEmpire {
             event.accept(new ItemStack(ManifestItems.single(WuLingRealm.EMERALD, WuLingType.AXE)));
             event.accept(new ItemStack(ManifestItems.single(WuLingRealm.EMERALD, WuLingType.PICKAXE)));
             event.accept(new ItemStack(ManifestItems.single(WuLingRealm.EMERALD, WuLingType.SHOVEL)));
+            // 红石工具四件（正常途径靠红石锭合成）
+            for (var tool : RedstoneItems.TOOLS) {
+                event.accept(new ItemStack(tool.get()));
+            }
+        }
+        // 红石战铠护甲四件
+        if (event.getTabKey() == CreativeModeTabs.COMBAT) {
+            for (var piece : RedstoneItems.ARMOR) {
+                event.accept(new ItemStack(piece.get()));
+            }
         }
     }
 

@@ -10,8 +10,14 @@ import net.minecraft.world.item.crafting.Ingredient;
 /**
  * 本模组自己的盔甲材质。
  *
- * 只做了一档「绿宝石」—— <b>各项都数倍于钻石</b>（2026-09-26 用户口径
- * 「绿宝石的所有东西都比钻石强很多倍」）：
+ * 有两档：
+ *   * 「绿宝石」—— 各项都数倍于钻石（见下）；
+ *   * 「红石」—— 充能类护甲的低配底子（0.3.6），护甲值 / 韧性故意给得很低，
+ *     强度由 {@code wuling/RedstoneGear} 按「玩家境界 + 1 档」动态挂的属性修饰符托着，
+ *     这样充能耗尽时加成才能被整体撤掉。
+ *
+ * 以下是绿宝石档的说明 —— 各项都数倍于钻石
+ * （2026-09-26 用户口径「绿宝石的所有东西都比钻石强很多倍」）。
  *
  * <pre>
  *                   钻石     下界合金    绿宝石     倍数(对钻石)
@@ -97,6 +103,75 @@ public final class ModArmorMaterials {
         @Override
         public float getKnockbackResistance() {
             return 0.6F;
+        }
+    };
+
+    /**
+     * 红石：<b>充能类护甲</b>的材质档（2026-10-02）。
+     *
+     * <p>与 {@link ModTiers#REDSTONE} 同一个思路：材质数值故意给得很低
+     * （锁链级的 2/5/4/1、韧性 0），实际强度由 {@code wuling/RedstoneGear}
+     * 按「玩家武灵境界 + 1 档」动态挂属性修饰符托上去。
+     *
+     * <p>材质的护甲值 / 韧性无法被移除，所以只留一点底子 —— 充能耗尽时
+     * 加成修饰符被撤掉，这套甲就退回「比锁链甲强一点」的水平，
+     * 配合玩家身上的攻击 / 移速惩罚，体感就是「没电了」。
+     *
+     * <p><b>贴图</b>：{@code textures/models/armor/redstone_layer_1.png}（头/胸/靴）
+     * 与 {@code _layer_2.png}（护腿），由 {@code tools/gen_redstone_gear.py} 生成。
+     */
+    public static final ArmorMaterial REDSTONE = new ArmorMaterial() {
+
+        @Override
+        public int getDurabilityForType(ArmorItem.Type type) {
+            int multiplier = 40;
+            return switch (type) {
+                case HELMET -> 11 * multiplier;
+                case CHESTPLATE -> 16 * multiplier;
+                case LEGGINGS -> 15 * multiplier;
+                case BOOTS -> 13 * multiplier;
+            };
+        }
+
+        @Override
+        public int getDefenseForType(ArmorItem.Type type) {
+            // 锁链档：2 / 5 / 4 / 1 —— 只作底子
+            return switch (type) {
+                case HELMET -> 2;
+                case CHESTPLATE -> 5;
+                case LEGGINGS -> 4;
+                case BOOTS -> 1;
+            };
+        }
+
+        @Override
+        public int getEnchantmentValue() {
+            return 22;
+        }
+
+        @Override
+        public SoundEvent getEquipSound() {
+            return SoundEvents.ARMOR_EQUIP_IRON;
+        }
+
+        @Override
+        public Ingredient getRepairIngredient() {
+            return Ingredient.of(Items.REDSTONE);
+        }
+
+        @Override
+        public String getName() {
+            return "wulingdiguo:redstone";
+        }
+
+        @Override
+        public float getToughness() {
+            return 0.0F;
+        }
+
+        @Override
+        public float getKnockbackResistance() {
+            return 0.0F;
         }
     };
 }

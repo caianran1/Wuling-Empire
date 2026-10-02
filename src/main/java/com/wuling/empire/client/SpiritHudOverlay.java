@@ -51,6 +51,10 @@ public final class SpiritHudOverlay {
         if (mc.player == null || mc.getCameraEntity() == null) {
             return;
         }
+
+        // 红石充能条先画 —— 它和「有没有开启武灵」无关（红石装备是普通合成品）
+        drawRedstoneBar(event.getGuiGraphics(), mc);
+
         // 武灵未开启 → 不显示灵力条
         if (!ClientWuLingData.isBound()) {
             return;
@@ -95,5 +99,84 @@ public final class SpiritHudOverlay {
 
         RenderSystem.disableBlend();
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    /** 充能条配色：有电是红石红，耗尽转暗 */
+    private static final int RS_FRAME = 0x66FFFFFF;
+    private static final int RS_BG = 0x99000000;
+    private static final int RS_FILL = 0xCCFF3B30;
+    private static final int RS_FILL_EMPTY = 0xCC7A5A5A;
+    private static final int RS_TEXT = 0xCCFFFFFF;
+
+    /**
+     * 红石充能条：画在灵力条下方。
+     *
+     * <p>只在「身上或手里有红石装备」且「服务端推过充能值」时显示 ——
+     * 不穿红石装备的玩家屏幕上不会多出这条。
+     *
+     * <p>标签里带档位（玩家武灵境界 + 1，封顶绿宝石），玩家能一眼看出现在这套甲是几档强度。
+     */
+    private static void drawRedstoneBar(GuiGraphics graphics, Minecraft mc) {
+        if (!ClientRedstoneData.hasData() || !hasRedstoneGear(mc)) {
+            return;
+        }
+        Font font = mc.font;
+        int screenWidth = mc.getWindow().getGuiScaledWidth();
+
+        int right = screenWidth - MARGIN;
+        if (!mc.player.getActiveEffects().isEmpty()) {
+            right -= EFFECT_COLUMN;
+        }
+        int x = right - BAR_WIDTH;
+        int y = MARGIN + BAR_HEIGHT + 14;
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+
+        graphics.fill(x - 1, y - 1, right + 1, y + BAR_HEIGHT + 1, RS_FRAME);
+        graphics.fill(x, y, right, y + BAR_HEIGHT, RS_BG);
+
+        float ratio = ClientRedstoneData.getRatio();
+        int filled = Math.round(BAR_WIDTH * ratio);
+        if (filled > 0) {
+            graphics.fill(x, y, x + filled, y + BAR_HEIGHT,
+                    ClientRedstoneData.isEmpty() ? RS_FILL_EMPTY : RS_FILL);
+        }
+
+        Component label = Component.translatable("hud.wulingdiguo.redstone",
+                Component.translatable(gearTierKey()),
+                String.valueOf(ClientRedstoneData.getCharge()),
+                String.valueOf(ClientRedstoneData.getMax()));
+        graphics.drawString(font, label,
+                right - font.width(label), y + BAR_HEIGHT + 2, RS_TEXT, true);
+
+        RenderSystem.disableBlend();
+    }
+
+    /** 当前红石装备的档位翻译键（玩家境界 + 1，封顶绿宝石） */
+    private static String gearTierKey() {
+        int ordinal = Math.max(0, Math.min(6, ClientWuLingData.realmOrdinal() + 1));
+        return com.wuling.empire.wuling.WuLingRealm.byOrdinal(ordinal).translationKey();
+    }
+
+    /** 客户端判据：主手 / 副手 / 四件护甲里有红石装备 */
+    private static boolean hasRedstoneGear(Minecraft mc) {
+        if (mc.player == null) {
+            return false;
+        }
+        if (com.wuling.empire.item.RedstoneItems.isGear(mc.player.getMainHandItem())
+                || com.wuling.empire.item.RedstoneItems.isGear(mc.player.getOffhandItem())) {
+            return true;
+        }
+        for (net.minecraft.world.entity.EquipmentSlot slot : new net.minecraft.world.entity.EquipmentSlot[]{
+                net.minecraft.world.entity.EquipmentSlot.HEAD,
+                net.minecraft.world.entity.EquipmentSlot.CHEST,
+                net.minecraft.world.entity.EquipmentSlot.LEGS,
+                net.minecraft.world.entity.EquipmentSlot.FEET}) {
+            if (com.wuling.empire.item.RedstoneItems.isGear(mc.player.getItemBySlot(slot))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

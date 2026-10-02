@@ -27,4 +27,9 @@ public final class WuLingClientBridge {
     public static void openChooseCreative() {
         Minecraft.getInstance().setScreen(new WuLingChooseScreen(true));
     }
+
+    /** 红石充能界面（手持红石装备右键时由服务端发指令打开） */
+    public static void openChargeScreen() {
+        Minecraft.getInstance().setScreen(new RedstoneChargeScreen());
+    }
 }

@@ -47,6 +47,7 @@ public final class ClientTickHandler {
             // 免得下次进入「没开武灵」的存档时灵力 HUD 先闪一下
             ClientWuLingData.reset();
             ClientSpiritData.reset();
+            ClientRedstoneData.reset();
             return;
         }
 

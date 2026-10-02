@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "III",
+    "III",
+    "III"
+  ],
+  "key": {
+    "I": {
+      "tag": "wulingdiguo:wuling_redstone_powder"
+    }
+  },
+  "result": {
+    "item": "wulingdiguo:redstone_ingot"
+  }
+}

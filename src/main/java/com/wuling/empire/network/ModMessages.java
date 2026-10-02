@@ -56,6 +56,15 @@ public final class ModMessages {
         INSTANCE.registerMessage(7, WuLingDismissPacket.class,
                 WuLingDismissPacket::encode, WuLingDismissPacket::decode,
                 WuLingDismissPacket::handle);
+        INSTANCE.registerMessage(8, RedstoneChargePacket.class,
+                RedstoneChargePacket::encode, RedstoneChargePacket::decode,
+                RedstoneChargePacket::handle);
+        INSTANCE.registerMessage(9, RedstoneSyncPacket.class,
+                RedstoneSyncPacket::encode, RedstoneSyncPacket::decode,
+                RedstoneSyncPacket::handle);
+        INSTANCE.registerMessage(10, RedstoneOpenPacket.class,
+                RedstoneOpenPacket::encode, RedstoneOpenPacket::decode,
+                RedstoneOpenPacket::handle);
     }
 
     /** 把玩家的灵力值推送给该玩家的客户端 */
@@ -74,8 +83,7 @@ public final class ModMessages {
                 new CorpseDataPacket(corpse.getId(), corpse.getMobData(), corpse.getVisualYaw()));
     }
 
-    /** 把玩家的武灵数据推送给该玩家的客户端 */
-    public static void sendWuLingTo(ServerPlayer player) {
+    /** 把玩家的武灵数据推送给该玩家的客户端 */    public static void sendWuLingTo(ServerPlayer player) {
         player.getCapability(ModCapabilities.WU_LING).ifPresent(wuLing -> {
             WuLingData data = wuLing.data();
             INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
@@ -90,6 +98,15 @@ public final class ModMessages {
                             data.cultivationBonus(),
                             data.submittedSnapshot(),
                             data.zombieKills()));
+        });
+    }
+
+    /** 把红石装备的充能推送给该玩家的客户端（HUD 与充能界面用） */
+    public static void sendRedstoneTo(ServerPlayer player) {
+        player.getCapability(ModCapabilities.WU_LING).ifPresent(wuLing -> {
+            INSTANCE.send(PacketDistributor.PLAYER.with(() -> player),
+                    new RedstoneSyncPacket(wuLing.data().redstoneCharge(),
+                            Config.REDSTONE_MAX_CHARGE.get()));
         });
     }
 }

@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "wulingdiguo:wood_redstone",
+    "wulingdiguo:stone_redstone",
+    "wulingdiguo:gold_redstone",
+    "wulingdiguo:meteor_iron_redstone",
+    "wulingdiguo:diamond_redstone",
+    "wulingdiguo:netherite_redstone",
+    "wulingdiguo:emerald_redstone"
+  ]
+}

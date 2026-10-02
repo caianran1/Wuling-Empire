@@ -186,6 +186,24 @@ public final class Config {
     /** 召唤出的僵尸从哪个大境界起可以飞行（用户口径：钻石境界） */
     public static final ForgeConfigSpec.IntValue ROTTEN_FLESH_FLY_REALM;
 
+    // ===================== 红石装备（充能类，2026-10-02） =====================
+    /** 红石装备的充能上限（点） */
+    public static final ForgeConfigSpec.IntValue REDSTONE_MAX_CHARGE;
+    /** 灵珠 → 充能的换算系数：灵珠回复量（%）× 本值 = 充能点数 */
+    public static final ForgeConfigSpec.IntValue REDSTONE_CHARGE_PER_PERCENT;
+    /** 攻击命中消耗 */
+    public static final ForgeConfigSpec.IntValue REDSTONE_COST_ATTACK;
+    /** 挖掉方块消耗 */
+    public static final ForgeConfigSpec.IntValue REDSTONE_COST_MINE;
+    /** 挨打受击消耗 */
+    public static final ForgeConfigSpec.IntValue REDSTONE_COST_HURT;
+    /** 飞行每秒消耗（点） */
+    public static final ForgeConfigSpec.IntValue REDSTONE_COST_FLY;
+    /** 充能耗尽时的攻击力惩罚比例（0.6 = 攻击力砍到 40%） */
+    public static final ForgeConfigSpec.DoubleValue REDSTONE_EMPTY_ATTACK_PENALTY;
+    /** 充能耗尽时的移动速度惩罚比例（0.3 = 移速掉到 70%） */
+    public static final ForgeConfigSpec.DoubleValue REDSTONE_EMPTY_SPEED_PENALTY;
+
     // ===================== 怪物等级（武灵属性，2026-09-27） =====================
     /** 怪物带武灵等级的概率 */
     public static final ForgeConfigSpec.DoubleValue MONSTER_TIER_CHANCE;
@@ -488,6 +506,38 @@ public final class Config {
                         "minecraft:wither",
                         "minecraft:ender_dragon"
                 ), o -> o instanceof String);
+
+        // ===================== 红石装备（充能类，2026-10-02） =====================
+        BUILDER.push("redstone");
+
+        REDSTONE_MAX_CHARGE = BUILDER.comment("红石装备的充能上限（点）。",
+                        "换算锚点：一颗末影龙极品灵珠的回复量是 25 × 4 = 100%，",
+                        "按下面的 chargePerPercent=10 算，刚好把默认的 1000 点充满；",
+                        "一颗僵尸凡品灵珠是 5% → 50 点。")
+                .defineInRange("maxCharge", 1000, 1, 1000000);
+
+        REDSTONE_CHARGE_PER_PERCENT = BUILDER.comment("灵珠 → 充能换算系数：",
+                        "灵珠的回复量（%，见 BeadPower 的怪物基准 × 品质倍率）× 本值 = 充能点数。",
+                        "默认 10，即「这颗珠子能回多少百分比灵力，就充 10 倍点数的装备充能」。")
+                .defineInRange("chargePerPercent", 10, 1, 1000);
+
+        REDSTONE_COST_ATTACK = BUILDER.comment("手持红石武器命中一次目标消耗的充能（点）")
+                .defineInRange("costAttack", 10, 0, 1000000);
+        REDSTONE_COST_MINE = BUILDER.comment("手持红石工具挖掉一个方块消耗的充能（点）")
+                .defineInRange("costMine", 5, 0, 1000000);
+        REDSTONE_COST_HURT = BUILDER.comment("穿着红石护甲被击中一次消耗的充能（点）")
+                .defineInRange("costHurt", 10, 0, 1000000);
+        REDSTONE_COST_FLY = BUILDER.comment("穿着红石靴子飞行时【每秒】消耗的充能（点）",
+                        "默认 20 —— 也就是飞行 50 秒耗光默认的 1000 点。")
+                .defineInRange("costFly", 20, 0, 1000000);
+
+        REDSTONE_EMPTY_ATTACK_PENALTY = BUILDER.comment("充能耗尽时的攻击力惩罚（按当前攻击力的比例扣）。",
+                        "默认 0.6 = 攻击力只剩 40%；0 = 不惩罚。不用药水效果，走属性修饰符。")
+                .defineInRange("emptyAttackPenalty", 0.6D, 0.0D, 1.0D);
+        REDSTONE_EMPTY_SPEED_PENALTY = BUILDER.comment("充能耗尽时的移动速度惩罚。默认 0.3 = 移速只剩 70%。")
+                .defineInRange("emptySpeedPenalty", 0.3D, 0.0D, 1.0D);
+
+        BUILDER.pop();
 
         BUILDER.pop();
     }

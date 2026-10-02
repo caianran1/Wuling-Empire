@@ -31,6 +31,7 @@ public class WuLingData {
     private static final String KEY_SUBMIT_TARGET = "SubmitTarget";
     /** 腐肉武灵的突破货币：累计击杀僵尸数 */
     private static final String KEY_ZOMBIE_KILLS = "ZombieKills";
+    private static final String KEY_REDSTONE_CHARGE = "RedstoneCharge";
 
     private boolean bound = false;
     private String typeKey = WuLingType.SWORD.key();
@@ -63,6 +64,16 @@ public class WuLingData {
      * 击杀数只增不减，突破时扣除对应档位的数量。
      */
     private int zombieKills = 0;
+
+    /**
+     * 红石装备的充能（点，0 ~ {@code Config#REDSTONE_MAX_CHARGE}）。
+     *
+     * <p>2026-10-02 用户口径：红石装备（护甲四件 + 剑斧镐铲）共用<b>一个</b>充能池，
+     * 用尽后手持任意一件红石装备右键打开充能菜单、用灵珠换充能。
+     * 池子挂在玩家身上而不是物品上 —— 因为它是「整套共享」的，
+     * 记在某一件物品的 NBT 上没法共享。
+     */
+    private int redstoneCharge = 0;
 
     // ===================== 查询 =====================
 
@@ -244,6 +255,36 @@ public class WuLingData {
         return true;
     }
 
+    // ===================== 红石装备：充能（2026-10-02） =====================
+
+    /**
+     * 红石装备当前充能（点）。
+     *
+     * <p>这套值和武灵本身无关 —— 未开启武灵的玩家也能穿红石装备、也能充能，
+     * 所以 {@link #unbind()} 不会清它（不像击杀数那样跟着武灵走）。
+     */
+    public int redstoneCharge() {
+        return redstoneCharge;
+    }
+
+    public void setRedstoneCharge(int value) {
+        this.redstoneCharge = Math.max(0, value);
+    }
+
+    /**
+     * 加减充能并夹在 [0, 上限] 内。
+     *
+     * @return 实际变化的点数（正 = 充进去多少，负 = 消耗掉多少），
+     * 已经满 / 已经空时为 0，调用方可据此判断要不要发同步包
+     */
+    public int addRedstoneCharge(int delta) {
+        int max = Config.REDSTONE_MAX_CHARGE.get();
+        int before = redstoneCharge;
+        int after = Math.max(0, Math.min(max, before + delta));
+        this.redstoneCharge = after;
+        return after - before;
+    }
+
     // ===================== 修炼进度 =====================
 
     /**
@@ -315,6 +356,7 @@ public class WuLingData {
         tag.put(KEY_SUBMIT, submitted);
         tag.putInt(KEY_SUBMIT_TARGET, submitTarget);
         tag.putInt(KEY_ZOMBIE_KILLS, zombieKills);
+        tag.putInt(KEY_REDSTONE_CHARGE, redstoneCharge);
         return tag;
     }
 
@@ -334,5 +376,6 @@ public class WuLingData {
         this.submitted = tag.contains(KEY_SUBMIT) ? tag.getCompound(KEY_SUBMIT) : new CompoundTag();
         this.submitTarget = tag.contains(KEY_SUBMIT_TARGET) ? tag.getInt(KEY_SUBMIT_TARGET) : -1;
         this.zombieKills = Math.max(0, tag.getInt(KEY_ZOMBIE_KILLS));
+        this.redstoneCharge = Math.max(0, tag.getInt(KEY_REDSTONE_CHARGE));
     }
 }
