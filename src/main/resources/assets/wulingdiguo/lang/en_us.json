@@ -159,5 +159,7 @@
   "message.wulingdiguo.redstone_charged": "§aCharge +%1$s §7(now %2$s / %3$s)",
   "message.wulingdiguo.redstone_full": "§6Charge is already full",
   "message.wulingdiguo.redstone_no_bead": "§6That bead is no longer in your inventory",
-  "hud.wulingdiguo.redstone": "Redstone·%1$s %2$s/%3$s"
+  "hud.wulingdiguo.redstone": "Redstone·%1$s %2$s/%3$s",
+  "building.wulingdiguo.warn": "§cUnsupported! §7Right-click with a slimeball within %1$s s to pin it",
+  "building.wulingdiguo.fixed": "§aPinned, this block will not fall"
 }

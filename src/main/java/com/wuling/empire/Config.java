@@ -36,6 +36,26 @@ public final class Config {
             "wulingdiguo:wu_ling_zombie"
     );
 
+    /**
+     * 建筑系统里<b>永不坠落</b>的方块 —— 同样硬编码，不受 config 影响。
+     *
+     * <p>按说这些方块玩家在生存里也放不出来，列在这里是给创造模式和指令兜底：
+     * 基岩、屏障、结构方块这类「世界骨架」如果因为悬空掉下去，会很难解释。
+     * 火把 / 花 / 门那类「依附型」方块不在这里 —— 它们由
+     * {@code BuildingSystem#isAttached} 按方块标签统一豁免。
+     */
+    public static final Set<String> BUILDING_NEVER_FALLS = Set.of(
+            "minecraft:bedrock",
+            "minecraft:barrier",
+            "minecraft:structure_block",
+            "minecraft:structure_void",
+            "minecraft:light",
+            "minecraft:jigsaw",
+            "minecraft:command_block",
+            "minecraft:chain_command_block",
+            "minecraft:repeating_command_block"
+    );
+
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
     // ===================== 灵力面板 =====================
@@ -203,6 +223,20 @@ public final class Config {
     public static final ForgeConfigSpec.DoubleValue REDSTONE_EMPTY_ATTACK_PENALTY;
     /** 充能耗尽时的移动速度惩罚比例（0.3 = 移速掉到 70%） */
     public static final ForgeConfigSpec.DoubleValue REDSTONE_EMPTY_SPEED_PENALTY;
+
+    // ===================== 建筑系统（悬空坠落，2026-10-02） =====================
+    /** 是否启用建筑系统 */
+    public static final ForgeConfigSpec.BooleanValue BUILDING_ENABLED;
+    /** 悬空方块开始坠落前的延迟（tick） */
+    public static final ForgeConfigSpec.IntValue BUILDING_DELAY_TICKS;
+    /** 用粘液球固定时是否消耗一颗 */
+    public static final ForgeConfigSpec.BooleanValue BUILDING_SLIME_CONSUMED;
+    /** 创造 / 旁观玩家放置的方块是否豁免 */
+    public static final ForgeConfigSpec.BooleanValue BUILDING_CREATIVE_IMMUNE;
+    /** 倒计时中的方块是否冒粒子提示 */
+    public static final ForgeConfigSpec.BooleanValue BUILDING_SHOW_PARTICLES;
+    /** 玩家额外排除的方块 ID */
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> BUILDING_EXCLUDED;
 
     // ===================== 怪物等级（武灵属性，2026-09-27） =====================
     /** 怪物带武灵等级的概率 */
@@ -536,6 +570,34 @@ public final class Config {
                 .defineInRange("emptyAttackPenalty", 0.6D, 0.0D, 1.0D);
         REDSTONE_EMPTY_SPEED_PENALTY = BUILDER.comment("充能耗尽时的移动速度惩罚。默认 0.3 = 移速只剩 70%。")
                 .defineInRange("emptySpeedPenalty", 0.3D, 0.0D, 1.0D);
+
+        BUILDER.pop();
+
+        // ===================== 建筑系统（悬空坠落，2026-10-02） =====================
+        BUILDER.push("building");
+
+        BUILDING_ENABLED = BUILDER.comment("是否启用建筑系统：",
+                        "玩家放下的方块如果正下方没有支撑，延迟一段时间后像沙子一样坠落。",
+                        "自然生成的地形 / 建筑不受影响（只有玩家放置的方块会进系统台账）。")
+                .define("enabled", true);
+
+        BUILDING_DELAY_TICKS = BUILDER.comment("悬空方块开始坠落前的延迟（tick），20 tick = 1 秒。",
+                        "默认 40 = 2 秒。这段倒计时内，用粘液球右键那一格可以把它固定住。")
+                .defineInRange("delayTicks", 40, 0, 12000);
+
+        BUILDING_SLIME_CONSUMED = BUILDER.comment("用粘液球固定方块时是否消耗一颗（创造模式始终不消耗）")
+                .define("consumeSlimeBall", true);
+
+        BUILDING_CREATIVE_IMMUNE = BUILDER.comment("创造 / 旁观玩家放置的方块是否免于坠落。",
+                        "默认 true —— 免得盖东西时被自己的规则烦到；想在创造里测试就关掉它。")
+                .define("creativeImmune", true);
+
+        BUILDING_SHOW_PARTICLES = BUILDER.comment("倒计时中的方块是否冒粒子提示（每 10 tick 一个）")
+                .define("showParticles", true);
+
+        BUILDING_EXCLUDED = BUILDER.comment("额外排除的方块 ID —— 除了代码里那份「依附型方块」硬名单之外，",
+                        "这些方块玩家放下后也不会坠落。每项格式：\"minecraft:stone\"")
+                .defineList("excludedBlocks", List.of(), o -> o instanceof String);
 
         BUILDER.pop();
 

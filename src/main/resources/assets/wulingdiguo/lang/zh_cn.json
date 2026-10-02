@@ -159,5 +159,7 @@
   "message.wulingdiguo.redstone_charged": "§a充能 +%1$s §7（当前 %2$s / %3$s）",
   "message.wulingdiguo.redstone_full": "§6充能已满，先用掉一些再来",
   "message.wulingdiguo.redstone_no_bead": "§6背包里已经没有这颗灵珠了",
-  "hud.wulingdiguo.redstone": "红石·%1$s %2$s/%3$s"
+  "hud.wulingdiguo.redstone": "红石·%1$s %2$s/%3$s",
+  "building.wulingdiguo.warn": "§c悬空！§7%1$s 秒内用粘液球右键可固定",
+  "building.wulingdiguo.fixed": "§a已固定，这块不会再坠落"
 }
