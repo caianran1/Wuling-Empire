@@ -122,6 +122,9 @@ public final class Config {
     /** 凝聚出的武灵比原版同款多出的护甲值（按原版数值的百分比） */
     public static final ForgeConfigSpec.DoubleValue MANIFEST_ARMOR_BONUS;
 
+    /** 每提升一个小境界，凝聚物基础属性额外增加的倍率（0.1 = 每级 +10%） */
+    public static final ForgeConfigSpec.DoubleValue MANIFEST_STAGE_STEP;
+
     /**
      * 「ALL_BEADS / ALL_JI_BEADS（每种怪物灵珠各 N 个）」类突破条件里额外排除的怪物 ID。
      * 这些怪物照样掉灵珠，只是不参与这几档突破的收集要求。
@@ -317,6 +320,14 @@ public final class Config {
                         "按原版该物品的护甲值百分比计算（100 = 护甲翻倍）。只对盔甲武灵生效。" +
                         "同样会再乘 (境界倍数-1)（见 manifestAttackBonus 的说明）。")
                 .defineInRange("manifestArmorBonus", 100.0D, 0.0D, 1000.0D);
+
+        MANIFEST_STAGE_STEP = BUILDER.comment("每提升一个小境界（前期 → 中期 → 后期），" +
+                        "凝聚物基础属性额外增加的倍率。2026-10-02 用户口径：「每升一等级基础属性都会提升」。",
+                        "最终数值 = 原版同款 × 大境界倍数 × (1 + 本值 × 小境界序号)，" +
+                        "小境界序号：前期 0 / 中期 1 / 后期 2。默认 0.1 = 每小境界 +10%。",
+                        "例：木档剑 4 → 12（前期）→ 13.2（中期）→ 14.4（后期），" +
+                        "大境界之间的断层照旧。设为 0 则小境界不影响属性。")
+                .defineInRange("manifestStageStep", 0.1D, 0.0D, 5.0D);
 
         // 大境界突破所需物资。格式： "物品注册名;数量"，
         // 特殊项 "BEADS_TOTAL;数量"  = 任意灵珠共 N 个（不限来源、不限品质）；

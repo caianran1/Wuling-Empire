@@ -1,5 +1,6 @@
 package com.wuling.empire.wuling;
 
+import com.wuling.empire.Config;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -63,6 +64,31 @@ public enum WuLingRealm {
      */
     public double manifestMultiplier() {
         return manifestMultiplier;
+    }
+
+    /**
+     * 算上小境界之后的倍率 —— <b>2026-10-02 用户口径「每升一等级基础属性都会提升」</b>。
+     *
+     * <p>以前只有大境界会改数值，小境界（前 / 中 / 后）纯属进度条上的刻度，
+     * 升了看不出差别。现在改成：
+     *
+     * <pre>
+     *   最终倍数 = 大境界倍数 × (1 + manifestStageStep × 小境界序号)
+     *             小境界序号：前期 0 / 中期 1 / 后期 2
+     * </pre>
+     *
+     * <p>默认 {@code manifestStageStep = 0.1}，于是木档剑 4 → 12 / 13.2 / 14.4，
+     * 绿宝石档 → 240 / 264 / 288。大境界之间的断层（1.43 倍以上）不受影响，
+     * 因为每一档的小境界都是从「前期」重新起步的。
+     */
+    public double manifestMultiplier(int stageOrdinal) {
+        return manifestMultiplier * stageFactor(stageOrdinal);
+    }
+
+    /** 小境界系数，见 {@link #manifestMultiplier(int)} */
+    public static double stageFactor(int stageOrdinal) {
+        int step = Math.max(0, Math.min(WuLingStage.LATE.ordinal(), stageOrdinal));
+        return 1.0D + Config.MANIFEST_STAGE_STEP.get() * step;
     }
 
     public String key() {

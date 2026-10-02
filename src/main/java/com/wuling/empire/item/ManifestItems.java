@@ -59,6 +59,17 @@ public final class ManifestItems {
     public static final String TAG_MANIFEST = "WuLingManifest";
 
     /**
+     * 凝聚时的小境界序号（前 0 / 中 1 / 后 2）。
+     *
+     * <p>2026-10-02 起小境界也会影响基础属性（{@code Config#MANIFEST_STAGE_STEP}），
+     * 而小境界升级时物品<b>还是同一件</b>，没法靠物品 ID 判断该不该换，
+     * 所以把「生成这一件时的小境界」记下来：
+     * {@code WuLingBinding#refreshManifestItems} 拿它和玩家当前小境界比对，不一样就重算属性。
+     * 0.3.3 及更早的旧物没有这个标签（读到 -1），下次升级会顺带被强化一次。
+     */
+    public static final String TAG_MANIFEST_STAGE = "WuLingManifestStage";
+
+    /**
      * 自选附魔书用的 NBT 键：玩家在附魔书凝聚界面里挑了哪条附魔、几级。
      *
      * <p>必须记下来 —— 书武灵的凝聚物默认只带「耐久」，境界提升时
@@ -176,6 +187,19 @@ public final class ManifestItems {
             return null;
         }
         return WuLingType.byKey(tag.getString(TAG_MANIFEST));
+    }
+
+    /** 记下这一件是在哪个小境界凝聚出来的 */
+    public static void markManifestStage(ItemStack stack, int stageOrdinal) {
+        stack.getOrCreateTag().putInt(TAG_MANIFEST_STAGE, Math.max(0, stageOrdinal));
+    }
+
+    /** 这一件凝聚时的小境界；旧物（0.3.3 及更早）返回 -1 = 未知，按「需要重新强化」处理 */
+    public static int manifestStage(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.contains(TAG_MANIFEST_STAGE, Tag.TAG_INT)
+                ? tag.getInt(TAG_MANIFEST_STAGE)
+                : -1;
     }
 
     /** 给「自选附魔书」记下所选附魔与等级 */

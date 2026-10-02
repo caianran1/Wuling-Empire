@@ -328,9 +328,10 @@ public enum WuLingType {
             stack = new ItemStack(ManifestItems.single(realm, this));
         }
         applyManifestEnchants(stack, realm, realmOrdinal);
-        // 打标记：升级时靠它认出「哪些是凝聚出的武灵实物」
+        // 打标记：升级时靠它认出「哪些是凝聚出的武灵实物」+ 当前小境界（决定要不要重新强化）
         ManifestItems.markManifest(stack, this);
-        finish(stack, realm, partKey);
+        ManifestItems.markManifestStage(stack, stageOrdinal);
+        finish(stack, realm, stageOrdinal, partKey);
         return stack;
     }
 
@@ -405,13 +406,17 @@ public enum WuLingType {
     /**
      * 统一收尾：按境界强化。
      *
+     * <p>倍率同时看大境界与小境界（{@link WuLingRealm#manifestMultiplier(int)}）——
+     * 2026-10-02 用户口径「每升一等级基础属性都会提升」，
+     * 所以前 / 中 / 后三个小境界的数值是递增的。
+     *
      * <p>不写 {@code setHoverName} —— 显示名由物品本身的 {@code getName} 给出
      * （见 {@link ManifestItems}），这样名字不会带原版「自定义名」的斜体样式。
      *
      * @param partKey 护甲部位的翻译键，保留给将来需要单独处理时用
      */
-    private ItemStack finish(ItemStack stack, WuLingRealm realm, String partKey) {
-        empower(stack, realm, realm.manifestMultiplier());
+    private ItemStack finish(ItemStack stack, WuLingRealm realm, int stageOrdinal, String partKey) {
+        empower(stack, realm, realm.manifestMultiplier(stageOrdinal));
         return stack;
     }
 

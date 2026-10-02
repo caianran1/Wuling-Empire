@@ -22,6 +22,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -422,14 +423,23 @@ public final class WuLingBinding {
     }
 
     /**
-     * 境界提升后，把背包里所有凝聚出的武灵实物<b>换成新境界的同款</b>。
+     * 境界提升后，把背包里所有凝聚出的武灵实物<b>换成当前境界/小境界的那件</b>。
      *
-     * <p>2026-10-01 用户口径：「每一级升级时手上的武灵物品也会一同升级」。
-     * 判定靠物品上的 {@code WuLingManifest} 标记 —— 只有本模组凝聚出来的东西会被换，
-     * 玩家自己做的原版木剑不受影响。
+     * <p>2026-10-01 用户口径：「每一级升级时手上的武灵物品也会一同升级」；
+     * 2026-10-02 追加「每升一等级基础属性都会提升」—— 因此小境界（前 / 中 / 后）
+     * 也会改数值，不再只是进度条上的刻度。
      *
-     * <p>已经是对应境界那件的会直接跳过，所以小境界晋升时调用也不会有副作用
-     * （不会靠升级白刷耐久）。
+     * <p>分两种情况处理：
+     * <ul>
+     *   <li><b>大境界突破</b>：换的是<b>另一件物品</b>（{@code wood_sword → stone_sword}），
+     *       只能整件替换；自选附魔书的选择按 NBT 还原回去。</li>
+     *   <li><b>小境界晋升</b>：还是同一件物品，只是重新算一遍属性修饰符 ——
+     *       耐久、附魔、玩家自己起的名字都原样搬过去，
+     *       既不靠升级白刷耐久，也不会吞掉玩家后来自己加的附魔。</li>
+     * </ul>
+     *
+     * <p>判定「要不要动」靠两样：物品 ID 是不是当前大境界那件
+     * ＋ 物品上记的小境界（{@link ManifestItems#TAG_MANIFEST_STAGE}）是不是当前小境界。
      *
      * @return 换掉的件数
      */
@@ -448,7 +458,9 @@ public final class WuLingBinding {
                 continue;
             }
             ArmorItem.Type armorType = armorTypeOf(old);
-            if (old.is(currentItem(data.realm(), type, armorType))) {
+            boolean sameRealm = old.is(currentItem(data.realm(), type, armorType));
+            // 大境界、小境界都对得上 → 已经是最新的，不用动
+            if (sameRealm && ManifestItems.manifestStage(old) == data.stageOrdinal()) {
                 continue;
             }
             ItemStack fresh = type.manifestPiece(data.realmOrdinal(), data.stageOrdinal(),
@@ -456,22 +468,51 @@ public final class WuLingBinding {
             if (fresh.isEmpty()) {
                 continue;
             }
-            // 自选附魔书：换新会把附魔冲成默认的耐久，得把玩家挑的那条还原回去
-            String bookEnchantId = ManifestItems.bookEnchant(old);
-            if (bookEnchantId != null) {
-                Enchantment enchantment =
-                        ForgeRegistries.ENCHANTMENTS.getValue(new ResourceLocation(bookEnchantId));
-                if (enchantment != null) {
-                    int lvl = Math.min(ManifestItems.bookLevel(old), enchantment.getMaxLevel());
-                    fresh.getEnchantmentTags().clear();
-                    fresh.enchant(enchantment, lvl);
-                    ManifestItems.markBook(fresh, bookEnchantId, lvl);
+            if (sameRealm) {
+                carryOver(old, fresh);
+            } else {
+                // 自选附魔书：换新会把附魔冲成默认的耐久，得把玩家挑的那条还原回去
+                String bookEnchantId = ManifestItems.bookEnchant(old);
+                if (bookEnchantId != null) {
+                    Enchantment enchantment =
+                            ForgeRegistries.ENCHANTMENTS.getValue(new ResourceLocation(bookEnchantId));
+                    if (enchantment != null) {
+                        int lvl = Math.min(ManifestItems.bookLevel(old), enchantment.getMaxLevel());
+                        fresh.getEnchantmentTags().clear();
+                        fresh.enchant(enchantment, lvl);
+                        ManifestItems.markBook(fresh, bookEnchantId, lvl);
+                    }
                 }
             }
             inventory.setItem(i, fresh);
             changed++;
         }
         return changed;
+    }
+
+    /**
+     * 小境界重算属性时，把旧件上的「玩家痕迹」搬到新件上。
+     *
+     * <p>属性修饰符与 tooltip 加成行由 {@code WuLingType#empower} 在新建时就写好，
+     * 这里只搬那些跟属性无关、丢了会让玩家难受的东西。
+     */
+    private static void carryOver(ItemStack old, ItemStack fresh) {
+        // 耐久进度原样保留（上限按新件截断，避免出现负数剩余耐久）
+        if (fresh.isDamageableItem()) {
+            fresh.setDamageValue(Math.min(old.getDamageValue(),
+                    Math.max(0, fresh.getMaxDamage() - 1)));
+        }
+        // 附魔整体搬运：包含本模组给的默认附魔，也包含玩家后来自己加上去的
+        EnchantmentHelper.setEnchantments(EnchantmentHelper.getEnchantments(old), fresh);
+        // 玩家自己改的名字
+        if (old.hasCustomHoverName()) {
+            fresh.setHoverName(old.getHoverName());
+        }
+        // 自选附魔书的记录（书武灵）
+        String bookEnchantId = ManifestItems.bookEnchant(old);
+        if (bookEnchantId != null) {
+            ManifestItems.markBook(fresh, bookEnchantId, ManifestItems.bookLevel(old));
+        }
     }
 
     /** 当前境界下，这种武灵的实物是哪一件（护甲要分部位） */
