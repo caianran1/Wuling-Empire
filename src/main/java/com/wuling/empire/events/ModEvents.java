@@ -5,6 +5,7 @@ import com.wuling.empire.capability.ModCapabilities;
 import com.wuling.empire.capability.SpiritPowerProvider;
 import com.wuling.empire.capability.WuLingProvider;
 import com.wuling.empire.entity.CorpseEntity;
+import com.wuling.empire.entity.WuLingZombieEntity;
 import com.wuling.empire.item.SpiritBeadDrops;
 import com.wuling.empire.wuling.BreakthroughRequirement;
 import com.wuling.empire.wuling.CultivationAction;
@@ -176,6 +177,11 @@ public class ModEvents {
             return;
         }
         if (!RottenFleshRule.isZombieFamily(dead)) {
+            return;
+        }
+        // 自家召唤的随从不算「击杀僵尸」（2026-10-02）：它继承原版 Zombie，
+        // 不排掉的话「召唤一批 → 打死」就能白刷击杀数与突破进度
+        if (dead instanceof WuLingZombieEntity) {
             return;
         }
         if (!(event.getSource().getEntity() instanceof Player player)) {

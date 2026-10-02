@@ -122,7 +122,7 @@
   "wuling.choose.hint": "§7选择武灵种类（绑定）；之后 Shift+M 凝聚出对应实物（不需要绑定器）",
   "wuling.manifest.name": "%1$s%2$s武灵",
   "wuling.book.title": "附魔书凝聚",
-  "wuling.book.hint": "§7选附魔与等级，点「凝聚」生成 · 每次消耗灵力 §6%1$s",
+  "wuling.book.hint": "§7选附魔与等级，点「凝聚」生成 · 数字为消耗灵力 · 当前 §6%1$s§7/§6%2$s",
   "wuling.book.condense": "凝聚",
   "message.wulingdiguo.book_need_book_type": "§6只有「书」武灵才能凝聚附魔书",
   "message.wulingdiguo.book_condensed": "§a凝聚出附魔书：§6%1$s §7（消耗灵力 %2$s → %3$s）",

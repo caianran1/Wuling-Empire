@@ -122,7 +122,7 @@
   "wuling.choose.hint": "§7Pick a Wu Ling type (bind); then Shift+M condenses it into an item (no binder needed)",
   "wuling.manifest.name": "%1$s%2$s Wu Ling",
   "wuling.book.title": "Condense Enchanted Book",
-  "wuling.book.hint": "§7Pick an enchantment and level, then hit Condense · §6%1$s§7 spirit each",
+  "wuling.book.hint": "§7Pick an enchantment and level, then hit Condense · number = spirit cost · §6%1$s§7/§6%2$s",
   "wuling.book.condense": "Condense",
   "message.wulingdiguo.book_need_book_type": "§6Only the Book Wu Ling can condense enchanted books",
   "message.wulingdiguo.book_condensed": "§aCondensed enchanted book: §6%1$s §7(spirit %2$s → %3$s)",

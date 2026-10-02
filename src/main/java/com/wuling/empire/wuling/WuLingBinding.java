@@ -364,9 +364,10 @@ public final class WuLingBinding {
      * 而是先打开 {@code client/WuLingBookScreen}，让玩家把<b>附魔和等级一起挑</b>，
      * 挑完再走这里生成（界面只负责选择，判定与消耗都在服务端）。
      *
-     * <p>与 {@link #condense} 的区别只有两点：附魔由玩家指定（不再固定给耐久），
-     * 以及把选择记进物品 NBT —— 境界提升换新时靠它还原，否则会被冲成默认附魔。
-     * 消耗的灵力与普通凝聚相同。
+     * <p>与 {@link #condense} 的区别只有三点：附魔由玩家指定（不再固定给耐久）、
+     * 把选择记进物品 NBT（境界提升换新时靠它还原，否则会被冲成默认附魔）、
+     * 以及<b>消耗随附魔稀有度与等级递增</b>（2026-10-02 用户口径：
+     * 「附魔书凝聚等级越高，附魔书越稀有消耗越大」，算法见 {@link BookCost}）。
      *
      * @param enchantId 附魔的注册名（如 {@code minecraft:sharpness}）
      * @param level     附魔等级；服务端会再夹一次 [1, 该附魔上限]
@@ -389,7 +390,7 @@ public final class WuLingBinding {
             }
             int lvl = Math.max(1, Math.min(level, enchantment.getMaxLevel()));
 
-            float cost = (float) (double) Config.CONDENSE_SPIRIT_COST.get();
+            float cost = BookCost.of(enchantment, lvl);
             ISpiritPower spirit = player.getCapability(ModCapabilities.SPIRIT_POWER).orElse(null);
             if (spirit == null) {
                 return;

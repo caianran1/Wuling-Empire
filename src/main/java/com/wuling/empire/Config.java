@@ -25,12 +25,15 @@ public final class Config {
      * 「代码里明明排除了，游戏里还掉」的怪事。这几只是设定上就不该有灵珠的，
      * 所以在这里再钉死一遍，与 EXCLUDED_MOBS 取并集。
      *   蠹虫、恼鬼 —— 原版设定点名排除；
-     *   末影螨 —— 2026-09-26 用户明确「末影螨也不要」。
+     *   末影螨 —— 2026-09-26 用户明确「末影螨也不要」；
+     *   武灵僵尸（腐肉武灵召唤出的随从）—— 2026-10-02 用户「腐肉僵尸被打死不掉灵珠」。
+     *     不封的话可以「召唤一批 → 打死 → 捡珠」白刷灵珠。
      */
     public static final Set<String> NEVER_DROPS = Set.of(
             "minecraft:silverfish",
             "minecraft:vex",
-            "minecraft:endermite"
+            "minecraft:endermite",
+            "wulingdiguo:wu_ling_zombie"
     );
 
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
@@ -115,6 +118,21 @@ public final class Config {
 
     /** 凝聚一次实体武灵消耗的灵力（百分制） */
     public static final ForgeConfigSpec.DoubleValue CONDENSE_SPIRIT_COST;
+
+    /**
+     * 自选附魔书的消耗规则（2026-10-02 用户口径：
+     * 「附魔书凝聚等级越高，附魔书越稀有消耗越大」）。
+     *
+     * <p>实际消耗 = 基础凝聚消耗 × <b>稀有度倍率</b> × (1 + {@code bookCostPerLevel} × (等级 − 1))，
+     * 最后封顶到灵力上限 —— 不封顶的话高等级书永远做不出来（灵力上限默认只有 100）。
+     * 计算收口在 {@code wuling/BookCost}。
+     */
+    public static final ForgeConfigSpec.DoubleValue BOOK_COST_PER_LEVEL;
+    /** 附魔稀有度倍率：普通 / 少见 / 稀有 / 极稀有（原版 Enchantment.Rarity） */
+    public static final ForgeConfigSpec.DoubleValue BOOK_RARITY_COMMON;
+    public static final ForgeConfigSpec.DoubleValue BOOK_RARITY_UNCOMMON;
+    public static final ForgeConfigSpec.DoubleValue BOOK_RARITY_RARE;
+    public static final ForgeConfigSpec.DoubleValue BOOK_RARITY_VERY_RARE;
 
     /** 凝聚出的武灵比原版同款多出的攻击力（按原版数值的百分比） */
     public static final ForgeConfigSpec.DoubleValue MANIFEST_ATTACK_BONUS;
@@ -330,6 +348,21 @@ public final class Config {
                         "例：木档剑 4 → 12（前期）→ 13.2（中期）→ 14.4（后期），" +
                         "大境界之间的断层照旧。设为 0 则小境界不影响属性。")
                 .defineInRange("manifestStageStep", 0.1D, 0.0D, 5.0D);
+
+        BOOK_COST_PER_LEVEL = BUILDER.comment("自选附魔书：每高 1 级，消耗在 1 级的基础上再增加的比例。" +
+                        "默认 0.5 = 2 级 +50%、3 级 +100%、5 级 +200%（再加上稀有度倍率）。",
+                        "2026-10-02 用户口径：「附魔书凝聚等级越高，附魔书越稀有消耗越大」。",
+                        "设为 0 则等级不影响消耗（回到旧行为）。")
+                .defineInRange("bookCostPerLevel", 0.5D, 0.0D, 100.0D);
+
+        BOOK_RARITY_COMMON = BUILDER.comment("附魔书消耗：普通（Common）附魔的倍率")
+                .defineInRange("bookRarityCommon", 1.0D, 0.0D, 100.0D);
+        BOOK_RARITY_UNCOMMON = BUILDER.comment("附魔书消耗：少见（Uncommon）附魔的倍率")
+                .defineInRange("bookRarityUncommon", 1.5D, 0.0D, 100.0D);
+        BOOK_RARITY_RARE = BUILDER.comment("附魔书消耗：稀有（Rare）附魔的倍率，如经验修补、冰霜行者")
+                .defineInRange("bookRarityRare", 2.5D, 0.0D, 100.0D);
+        BOOK_RARITY_VERY_RARE = BUILDER.comment("附魔书消耗：极稀有（Very Rare）附魔的倍率，如无限、灵魂疾行")
+                .defineInRange("bookRarityVeryRare", 4.0D, 0.0D, 100.0D);
 
         // 大境界突破所需物资。格式： "物品注册名;数量"，
         // 特殊项 "BEADS_TOTAL;数量"  = 任意灵珠共 N 个（不限来源、不限品质）；

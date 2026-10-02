@@ -1,8 +1,8 @@
 package com.wuling.empire.client;
 
-import com.wuling.empire.Config;
 import com.wuling.empire.network.ModMessages;
 import com.wuling.empire.network.WuLingBookPacket;
+import com.wuling.empire.wuling.BookCost;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -23,6 +23,10 @@ import java.util.List;
  * 列出全部附魔，每行自带 {@code −} / {@code +} 调等级，点行尾的「凝聚」生成。
  * 界面只负责选择 —— 判定（是否已开启武灵、是不是书武灵、灵力够不够、等级是否越界）
  * 全都在服务端 {@code WuLingBinding#condenseBook} 再做一次。
+ *
+ * <p>2026-10-02 用户口径：「附魔书凝聚等级越高，附魔书越稀有消耗越大」——
+ * 所以每行都会实时显示该等级的消耗灵力值，<b>附魔越稀有、等级越高数字越大</b>，
+ * 灵力不够时数字标红（算法见 {@link BookCost}，与服务端同一份）。
  *
  * <p>纯手写渲染 + 自己算命中区，不用 {@code ObjectSelectionList}：
  * 行内要塞两组小按钮，走原版列表反而更绕。
@@ -49,6 +53,9 @@ public class WuLingBookScreen extends Screen {
     private static final int COL_BTN_HOVER = 0xFF5A5A9A;
     private static final int COL_BTN_BORDER = 0xFF8080C0;
     private static final int COL_ROW_HOVER = 0x30FFFFFF;
+    /** 消耗数字：灵力够 / 不够 */
+    private static final int COL_COST = 0xFFE0C060;
+    private static final int COL_COST_LOW = 0xFFE06060;
 
     /** 一行 = 一条附魔 + 当前选的等级 */
     private static final class Row {
@@ -61,6 +68,11 @@ public class WuLingBookScreen extends Screen {
 
         Component name() {
             return Component.translatable(ench.getDescriptionId());
+        }
+
+        /** 当前等级要消耗的灵力；附魔越稀有、等级越高越贵（见 {@link BookCost}） */
+        float cost() {
+            return BookCost.of(ench, level);
         }
 
         String sortKey() {
@@ -167,7 +179,8 @@ public class WuLingBookScreen extends Screen {
         drawScrollbar(graphics, lt, lb);
 
         graphics.drawCenteredString(this.font,
-                Component.translatable("wuling.book.hint", trim(Config.CONDENSE_SPIRIT_COST.get())),
+                Component.translatable("wuling.book.hint",
+                        trim(ClientSpiritData.getSpirit()), trim(ClientSpiritData.getMax())),
                 this.width / 2, t + PANEL_H - 13, COL_DIM);
 
         super.render(graphics, mouseX, mouseY, partialTick);
@@ -185,8 +198,16 @@ public class WuLingBookScreen extends Screen {
             graphics.fill(x0, y, x1, y + ROW_H, COL_ROW_HOVER);
         }
 
-        // 附魔名（太长就截断，别压到右边的按钮上）
-        String name = this.font.plainSubstrByWidth(row.name().getString(), minusX() - 6 - (x0 + 4));
+        // 消耗数字：附魔越稀有 / 等级越高越大，灵力不够时标红
+        float cost = row.cost();
+        String costText = trim(cost);
+        int costX = minusX() - 6 - this.font.width(costText);
+        boolean affordable = ClientSpiritData.getSpirit() >= cost - 0.001F;
+        graphics.drawString(this.font, costText, costX, y + 5,
+                affordable ? COL_COST : COL_COST_LOW, false);
+
+        // 附魔名（太长就截断，别压到消耗数字与右边的按钮上）
+        String name = this.font.plainSubstrByWidth(row.name().getString(), costX - 6 - (x0 + 4));
         graphics.drawString(this.font, name, x0 + 4, y + 5, COL_TEXT, false);
 
         int btnY = y + 2;
