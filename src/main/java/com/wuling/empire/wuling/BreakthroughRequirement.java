@@ -29,12 +29,15 @@ import java.util.Set;
 /**
  * 大境界突破所需物资的解析、缴纳与校验。
  *
- * 配置格式："物品注册名;数量"。另有两个特殊键代表「每种怪物的灵珠各 N 个」：
+ * 配置格式："物品注册名;数量"。另有三个特殊键代表灵珠需求：
  * <ul>
  *   <li>{@code ALL_JI_BEADS} —— 只要<b>极品</b>灵珠（旧口径，下界合金档现已不用，代码保留兼容）</li>
- *   <li>{@code ALL_BEADS} —— <b>不限品质</b>，凡品到极品都算数（2026-09-26 起绿宝石档改用这个）</li>
+ *   <li>{@code ALL_BEADS} —— <b>不限品质</b>，凡品到极品都算数，但要求<b>每种怪物各 N 个</b></li>
+ *   <li>{@code BEADS_TOTAL} —— <b>不限来源、不限品质，凑够 N 颗就行</b>
+ *       （2026-10-02 起绿宝石档改用这个：原来「每种各 10 个」共 270 颗太难，
+ *       改成任意灵珠 100 颗）</li>
  * </ul>
- * 两种特殊键覆盖的怪物集合见 {@link #allRequiredBeadSources()}：
+ * 前两种特殊键覆盖的怪物集合见 {@link #allRequiredBeadSources()}：
  * 注册表里的敌对生物 + 本模组出图怪物，再减去
  * {@link Config#NEVER_DROPS}、{@link Config#EXCLUDED_MOBS} 与
  * {@link Config#BREAKTHROUGH_EXCLUDED_MOBS}（巨人 / 疣猪兽 / 幻术师 / 远古守卫者 / 流浪者 / 监守者）。
@@ -56,8 +59,10 @@ public final class BreakthroughRequirement {
 
     /** 只要极品灵珠 */
     public static final String ALL_JI_BEADS = "ALL_JI_BEADS";
-    /** 不限品质的灵珠（凡品 ~ 极品都算） */
+    /** 不限品质的灵珠（凡品 ~ 极品都算），但每种怪物各 N 个 */
     public static final String ALL_BEADS = "ALL_BEADS";
+    /** 任意灵珠共 N 个（不限来源、不限品质） */
+    public static final String BEADS_TOTAL = "BEADS_TOTAL";
 
     /** 缴纳池键前缀：普通物品 */
     private static final String PREFIX_ITEM = "item|";
@@ -130,6 +135,11 @@ public final class BreakthroughRequirement {
         return ALL_JI_BEADS.equals(id) || ALL_BEADS.equals(id);
     }
 
+    /** 是否是「任意灵珠共 N 个」这类条目 */
+    private static boolean isTotalBeadsEntry(String id) {
+        return BEADS_TOTAL.equals(id);
+    }
+
     /** 该条目的品质限定；返回 null 表示不限品质 */
     private static SpiritQuality qualityLimit(String id) {
         return ALL_JI_BEADS.equals(id) ? SpiritQuality.JI : null;
@@ -183,7 +193,14 @@ public final class BreakthroughRequirement {
         Map<String, Integer> deposited = pool == null ? Map.of() : pool;
 
         for (Entry entry : parse(Config.breakthroughRequirement(targetRealmOrdinal))) {
-            if (isAllBeadsEntry(entry.id())) {
+            if (isTotalBeadsEntry(entry.id())) {
+                int need = entry.count();
+                int inPool = Math.min(need, pooledBeadsTotal(deposited, need));
+                int inBag = countBeadsAny(inventory, need - inPool);
+                int have = Math.min(need, inPool + inBag);
+                rows.add(new Row(Component.translatable("wuling.require.beads_total", need),
+                        need, have, inPool, have >= need));
+            } else if (isAllBeadsEntry(entry.id())) {
                 SpiritQuality only = qualityLimit(entry.id());
                 int needTotal = 0;
                 int haveTotal = 0;
@@ -239,7 +256,16 @@ public final class BreakthroughRequirement {
         int moved = 0;
 
         for (Entry entry : parse(Config.breakthroughRequirement(targetRealmOrdinal))) {
-            if (isAllBeadsEntry(entry.id())) {
+            if (isTotalBeadsEntry(entry.id())) {
+                int remaining = entry.count() - pooledBeadsTotal(data.submittedSnapshot(), entry.count());
+                if (remaining > 0) {
+                    // 任意灵珠：抓到哪种算哪种，分「来源 + 品质」入账，退还时原样奉还
+                    for (Map.Entry<String, Integer> taken : takeBeadsAny(inventory, remaining).entrySet()) {
+                        data.addSubmitted(taken.getKey(), taken.getValue());
+                        moved += taken.getValue();
+                    }
+                }
+            } else if (isAllBeadsEntry(entry.id())) {
                 SpiritQuality only = qualityLimit(entry.id());
                 Map<String, Integer> pool = data.submittedSnapshot();
                 for (String source : allRequiredBeadSources()) {
@@ -278,7 +304,11 @@ public final class BreakthroughRequirement {
     public static boolean isPoolComplete(WuLingData data, int targetRealmOrdinal) {
         Map<String, Integer> pool = data.submittedSnapshot();
         for (Entry entry : parse(Config.breakthroughRequirement(targetRealmOrdinal))) {
-            if (isAllBeadsEntry(entry.id())) {
+            if (isTotalBeadsEntry(entry.id())) {
+                if (pooledBeadsTotal(pool, entry.count()) < entry.count()) {
+                    return false;
+                }
+            } else if (isAllBeadsEntry(entry.id())) {
                 SpiritQuality only = qualityLimit(entry.id());
                 for (String source : allRequiredBeadSources()) {
                     if (pooledBeads(pool, source, only, entry.count()) < entry.count()) {
@@ -459,6 +489,21 @@ public final class BreakthroughRequirement {
         return total;
     }
 
+    /** 缴纳池里共有多少颗灵珠（{@code BEADS_TOTAL} 用：不限来源、不限品质） */
+    private static int pooledBeadsTotal(Map<String, Integer> pool, int limit) {
+        if (limit <= 0) {
+            return 0;
+        }
+        int total = 0;
+        for (PoolBead bead : poolBeads(pool)) {
+            total += bead.count();
+            if (total >= limit) {
+                return limit;
+            }
+        }
+        return total;
+    }
+
     /** 统计某个来源的灵珠数量（最多数到 limit） */
     private static int countBeads(Container container, String source, SpiritQuality only, int limit) {
         if (limit <= 0) {
@@ -502,6 +547,53 @@ public final class BreakthroughRequirement {
             stack.shrink(take);
             total += take;
             taken.merge(quality, take, Integer::sum);
+        }
+        return taken;
+    }
+
+    /** 背包里任意灵珠的总数（最多数到 limit） */
+    private static int countBeadsAny(Container container, int limit) {
+        if (limit <= 0) {
+            return 0;
+        }
+        int total = 0;
+        for (int i = 0; i < container.getContainerSize(); i++) {
+            ItemStack stack = container.getItem(i);
+            if (!(stack.getItem() instanceof SpiritBeadItem)) {
+                continue;
+            }
+            total += stack.getCount();
+            if (total >= limit) {
+                return limit;
+            }
+        }
+        return total;
+    }
+
+    /**
+     * 取走至多 amount 颗任意灵珠（不限来源、不限品质），按缴纳池键分别记账返回。
+     * 键里带上「来源 + 品质」，所以退还时不会串味。
+     */
+    private static Map<String, Integer> takeBeadsAny(Container container, int amount) {
+        Map<String, Integer> taken = new LinkedHashMap<>();
+        if (amount <= 0) {
+            return taken;
+        }
+        int total = 0;
+        for (int i = 0; i < container.getContainerSize() && total < amount; i++) {
+            ItemStack stack = container.getItem(i);
+            if (!(stack.getItem() instanceof SpiritBeadItem)) {
+                continue;
+            }
+            String source = SpiritBeadItem.getSource(stack);
+            SpiritQuality quality = SpiritBeadItem.getQuality(stack);
+            if (source == null || quality == null) {
+                continue;
+            }
+            int take = Math.min(amount - total, stack.getCount());
+            stack.shrink(take);
+            total += take;
+            taken.merge(beadKey(source, quality), take, Integer::sum);
         }
         return taken;
     }

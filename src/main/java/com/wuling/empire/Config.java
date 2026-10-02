@@ -123,8 +123,9 @@ public final class Config {
     public static final ForgeConfigSpec.DoubleValue MANIFEST_ARMOR_BONUS;
 
     /**
-     * 「每种怪物灵珠各 N 个」类突破条件里额外排除的怪物 ID。
+     * 「ALL_BEADS / ALL_JI_BEADS（每种怪物灵珠各 N 个）」类突破条件里额外排除的怪物 ID。
      * 这些怪物照样掉灵珠，只是不参与这几档突破的收集要求。
+     * 绿宝石档用的是 BEADS_TOTAL（任意灵珠 100 颗），本名单对它不起作用。
      */
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> BREAKTHROUGH_EXCLUDED_MOBS;
 
@@ -318,11 +319,13 @@ public final class Config {
                 .defineInRange("manifestArmorBonus", 100.0D, 0.0D, 1000.0D);
 
         // 大境界突破所需物资。格式： "物品注册名;数量"，
-        // 特殊项 "ALL_BEADS;数量"   = 除排除名单外，每种怪物（不限品质）的灵珠各若干个；
+        // 特殊项 "BEADS_TOTAL;数量"  = 任意灵珠共 N 个（不限来源、不限品质）；
+        // 特殊项 "ALL_BEADS;数量"    = 除排除名单外，每种怪物（不限品质）的灵珠各若干个；
         // 特殊项 "ALL_JI_BEADS;数量" = 同上但只收极品灵珠（旧口径，保留兼容）。
         BREAKTHROUGH_EXCLUDED_MOBS = BUILDER.comment(
-                        "「每种怪物灵珠各 N 个」类突破条件里额外排除的怪物 ID。" +
+                        "「ALL_BEADS / ALL_JI_BEADS（每种怪物各 N 个）」类突破条件里额外排除的怪物 ID。" +
                         "这些怪物照样掉灵珠，只是不参与这几档突破的收集要求。" +
+                        "注意：绿宝石档用的是 BEADS_TOTAL（任意灵珠 100 颗），本名单对它不起作用。" +
                         "2026-09-26 用户点名：巨人、疣猪兽、幻术师、远古守卫者、流浪者、监守者。")
                 .defineList("breakthroughExcludedMobs", Arrays.asList(
                         "minecraft:giant",
@@ -344,14 +347,14 @@ public final class Config {
         REQ_DIAMOND_TO_NETHERITE = requirement("diamond_to_netherite",
                 "钻石 → 下界合金（原文：约 18 组金锭 + 约 18 组远古残骸）",
                 Arrays.asList("minecraft:gold_ingot;1152", "minecraft:ancient_debris;1152"));
-        // ⚠️ 键名从旧的 netherite_to_emerald 改成 emerald_beads_any_quality（2026-09-27）：
-        // 0.2.13 就把默认值从 ALL_JI_BEADS 改成了 ALL_BEADS，但**键名没换**，
-        // 于是老存档里那份配置里仍然是「只收极品」，游戏里照旧只认极品 ——
-        // Forge 不会把已生成的配置跟随代码默认值更新。换键名才能让新默认值真正生效。
-        REQ_NETHERITE_TO_EMERALD = requirement("emerald_beads_any_quality",
-                "下界合金 → 绿宝石（2026-09-27 修订：除巨人/疣猪兽/幻术师/远古守卫者/流浪者/监守者外，"
-                        + "每种怪物灵珠不限品质各 10 个 + 10 个绿宝石块）",
-                Arrays.asList("ALL_BEADS;10", "minecraft:emerald_block;10"));
+        // ⚠️ 键名两度更换（netherite_to_emerald → emerald_beads_any_quality → emerald_beads_total）：
+        // Forge 的配置一旦生成就固定在那里，改代码默认值对它无效。
+        // 0.2.13 把默认值从 ALL_JI_BEADS 改成 ALL_BEADS 时没换键名，老存档照旧只收极品；
+        // 2026-10-02 把要求从「每种怪物各 10 个（共 270 颗）」改成「任意灵珠 100 颗」，
+        // 同样必须换键名，新默认值才会真正生效。
+        REQ_NETHERITE_TO_EMERALD = requirement("emerald_beads_total",
+                "下界合金 → 绿宝石（2026-10-02 修订：任意灵珠 100 颗，不限来源与品质 + 10 个绿宝石块）",
+                Arrays.asList("BEADS_TOTAL;100", "minecraft:emerald_block;10"));
 
         BUILDER.pop();
 
@@ -541,8 +544,9 @@ public final class Config {
      */
     public static void logEffectiveRequirements() {
         for (int realm = 1; realm <= 6; realm++) {
-            WulingEmpire.LOGGER.info("[武灵帝国] 突破物资生效值 · {} = {}（ALL_BEADS = 不限品质，"
-                    + "ALL_JI_BEADS = 只要极品）", REALM_STEP_NAMES[realm], breakthroughRequirement(realm));
+            WulingEmpire.LOGGER.info("[武灵帝国] 突破物资生效值 · {} = {}（BEADS_TOTAL = 任意灵珠共 N 个，"
+                    + "ALL_BEADS = 每种怪物各 N 个且不限品质，ALL_JI_BEADS = 只要极品）",
+                    REALM_STEP_NAMES[realm], breakthroughRequirement(realm));
             WulingEmpire.LOGGER.info("[武灵帝国] 腐肉武灵突破生效值 · {} = 击杀僵尸 {} 只",
                     REALM_STEP_NAMES[realm], zombieKillsFor(realm));
         }

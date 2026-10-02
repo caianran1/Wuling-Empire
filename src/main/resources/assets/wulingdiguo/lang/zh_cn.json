@@ -75,6 +75,7 @@
   "wuling.panel.zombie_kills_hint": "§7累计击杀僵尸，数量达到即可突破",
   "wuling.require.all_ji_beads": "全体怪物极品灵珠（%1$d 种 × %2$d 个）",
   "wuling.require.all_beads": "全体怪物灵珠 · 不限品质（%1$d 种 × %2$d 个）",
+  "wuling.require.beads_total": "任意灵珠 %1$d 个（不限来源与品质）",
   "tooltip.wulingdiguo.bead_source": "§7来源：%1$s",
   "tooltip.wulingdiguo.binder_1": "§6仅限创造模式取得",
   "tooltip.wulingdiguo.binder_2": "§7Shift+右键：选择武灵种类（绑定，消耗灵珠）",

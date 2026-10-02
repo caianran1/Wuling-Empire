@@ -73,6 +73,7 @@
   "wuling.panel.zombie_kills_hint": "§7Slay zombies to accumulate; reach the count to break through",
   "wuling.require.all_ji_beads": "Supreme beads of every mob (%1$d kinds x %2$d)",
   "wuling.require.all_beads": "Beads of every mob, any quality (%1$d kinds x %2$d)",
+  "wuling.require.beads_total": "Any beads x%1$d (any mob, any quality)",
   "tooltip.wulingdiguo.bead_source": "§7Source: %1$s",
   "tooltip.wulingdiguo.binder_1": "§6Creative mode only",
   "tooltip.wulingdiguo.binder_2": "§7Shift+Right Click: pick your Wu Ling type (bind)",
